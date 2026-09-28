@@ -40,7 +40,7 @@ export function ReportsScreen() {
       />
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="rounded-2xl p-5 shadow-sm lg:col-span-2">
+        <Card className="min-w-0 rounded-2xl p-5 shadow-sm lg:col-span-2">
           <h2 className="text-base font-semibold">Recent Reports</h2>
           <p className="mt-0.5 text-sm text-muted-foreground">{reportList.length} reports</p>
           <div className="mt-4 space-y-2">
@@ -57,7 +57,7 @@ export function ReportsScreen() {
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="truncate text-sm font-medium">{r.name}</p>
-                    <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         {r.date}
@@ -66,7 +66,7 @@ export function ReportsScreen() {
                       {r.size !== '—' && <span>{r.size}</span>}
                     </div>
                   </div>
-                  <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium', status.bg, status.color)}>
+                  <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium', status.bg, status.color)}>
                     <StatusIcon className={cn('h-3 w-3', r.status === 'Generating' && 'animate-spin')} />
                     {r.status}
                   </span>

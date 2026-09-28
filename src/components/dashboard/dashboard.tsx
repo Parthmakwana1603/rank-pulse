@@ -114,7 +114,7 @@ export function Dashboard() {
         )}
       >
         <Topbar onNavigate={handleNavigate} onMenuClick={() => setMobileNavOpen(true)} />
-        <main className="scrollbar-thin flex-1 overflow-y-auto p-4 md:p-6">
+        <main className="min-w-0 flex-1 p-4 md:p-6">
           {renderPage()}
         </main>
       </div>
