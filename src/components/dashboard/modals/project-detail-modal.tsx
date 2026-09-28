@@ -1,7 +1,9 @@
 import { ModalFooter, CancelButton, PrimaryButton } from './modal-shell';
 import { TrendingUp, TrendingDown, Activity, Link2, Search, ShieldCheck } from 'lucide-react';
 import { Area, AreaChart, ResponsiveContainer, Tooltip } from 'recharts';
-import { projectList } from '@/lib/seo-data';
+import { useProjects } from '@/lib/api/queries';
+import { QueryFallback } from '../query-fallback';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const tooltipStyle = {
   backgroundColor: 'hsl(var(--popover))',
@@ -11,6 +13,9 @@ const tooltipStyle = {
 };
 
 export function ProjectDetailModal({ onClose, project }: { onClose: () => void; project: string }) {
+  const projectsQuery = useProjects();
+  if (!projectsQuery.data) return <QueryFallback query={projectsQuery} skeleton={<Skeleton className="h-48 rounded-xl" />} />;
+  const projectList = projectsQuery.data;
   const data = projectList.find((p) => p.name === project) ?? projectList[0];
   const trendData = data.trend.map((v, i) => ({ i, v }));
   const trendUp = data.trend[data.trend.length - 1] >= data.trend[0];

@@ -1,7 +1,7 @@
 import { Sparkles, TrendingUp, Brain, Globe, Quote, Cpu, Code, FileCheck } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { SectionHeader } from './section-header';
-import { aiSeoMetrics } from '@/lib/seo-data';
+import type { DashboardSummary } from '@/lib/api/queries';
 import { cn } from '@/lib/utils';
 
 const iconMap = {
@@ -20,7 +20,7 @@ const accentBg: Record<string, string> = {
   'chart-4': 'from-chart-4/20 to-chart-4/5 text-chart-4',
 };
 
-export function AiSeoSection() {
+export function AiSeoSection({ aiSeoMetrics }: Pick<DashboardSummary, 'aiSeoMetrics'>) {
   return (
     <Card className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-chart-4/5 via-card to-primary/5 p-5 shadow-sm">
       <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-chart-4/10 blur-3xl" />

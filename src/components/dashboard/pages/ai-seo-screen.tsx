@@ -2,9 +2,10 @@ import { Sparkles, Download, TrendingUp, Brain, Globe, Quote, Cpu, Code, FileChe
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '../page-header';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
-import { aiSeoFullMetrics, aiMentionsByPlatform, aiTrend, aiRecommendations } from '@/lib/seo-data';
+import { useAiSeoData } from '@/lib/api/queries';
 import { cn } from '@/lib/utils';
 import { useModal } from '../modals/modal-provider';
+import { QueryFallback } from '../query-fallback';
 
 const iconMap: Record<string, typeof Brain> = {
   'AI Visibility Score': Brain,
@@ -38,6 +39,9 @@ const impactColor: Record<string, string> = {
 
 export function AiSeoScreen() {
   const { open } = useModal();
+  const screenQuery = useAiSeoData();
+  if (!screenQuery.data) return <QueryFallback query={screenQuery} />;
+  const { metrics: aiSeoFullMetrics, trend: aiTrend, mentions: aiMentionsByPlatform, recommendations: aiRecommendations } = screenQuery.data;
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
       <PageHeader

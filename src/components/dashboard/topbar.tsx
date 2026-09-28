@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '@/components/theme-provider';
 import { useAuth } from '@/lib/auth-context';
-import { projects, notifications } from '@/lib/seo-data';
+import { useNotifications, useProjects } from '@/lib/api/queries';
 
 interface TopbarProps {
   onNavigate: (label: string) => void;
@@ -25,7 +25,11 @@ export function Topbar({ onNavigate, onMenuClick }: TopbarProps) {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const [projectOpen, setProjectOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState(projects[0]);
+  const projectsQuery = useProjects();
+  const projects = projectsQuery.data ?? [];
+  const notifications = useNotifications().data ?? [];
+  const [selectedName, setSelectedName] = useState<string | null>(null);
+  const selectedProject = projects.find((p) => p.name === selectedName) ?? projects[0];
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
 
@@ -54,10 +58,10 @@ export function Topbar({ onNavigate, onMenuClick }: TopbarProps) {
             className="flex h-9 items-center gap-2 rounded-xl border bg-card px-3 text-sm font-medium transition-colors hover:bg-muted"
           >
             <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent text-[11px] font-bold text-primary-foreground">
-              {selectedProject.favicon}
+              {selectedProject?.favicon ?? (projectsQuery.isError ? '!' : '…')}
             </span>
             <span className="hidden max-w-[140px] truncate sm:block">
-              {selectedProject.name}
+              {selectedProject?.name ?? (projectsQuery.isError ? 'Projects unavailable' : 'Loading…')}
             </span>
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </button>
@@ -72,7 +76,7 @@ export function Topbar({ onNavigate, onMenuClick }: TopbarProps) {
                   <button
                     key={p.name}
                     onClick={() => {
-                      setSelectedProject(p);
+                      setSelectedName(p.name);
                       setProjectOpen(false);
                     }}
                     className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors hover:bg-muted"
@@ -81,7 +85,7 @@ export function Topbar({ onNavigate, onMenuClick }: TopbarProps) {
                       {p.favicon}
                     </span>
                     <span className="flex-1 text-left">{p.name}</span>
-                    {selectedProject.name === p.name && (
+                    {selectedProject?.name === p.name && (
                       <Check className="h-4 w-4 text-primary" />
                     )}
                   </button>

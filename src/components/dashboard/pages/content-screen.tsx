@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { FileText, Plus, TrendingUp, TrendingDown, MoreHorizontal, Filter } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '../page-header';
-import { contentList, contentStats, type ContentItem } from '@/lib/seo-data';
+import type { ContentItem } from '@/lib/seo-data';
+import { useContentData } from '@/lib/api/queries';
 import { cn, matchesQuery } from '@/lib/utils';
 import { useModal } from '../modals/modal-provider';
+import { QueryFallback } from '../query-fallback';
 import { TableFilter, NoMatchesRow } from '../table-filter';
 
 const statusConfig: Record<ContentItem['status'], { color: string; bg: string }> = {
@@ -31,6 +33,9 @@ export function ContentScreen() {
   const { open } = useModal();
   const [filterOpen, setFilterOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const screenQuery = useContentData();
+  if (!screenQuery.data) return <QueryFallback query={screenQuery} />;
+  const { content: contentList, stats: contentStats } = screenQuery.data;
   const rows = contentList.filter((item) =>
     matchesQuery(query, [item.title, item.url, item.type, item.status])
   );

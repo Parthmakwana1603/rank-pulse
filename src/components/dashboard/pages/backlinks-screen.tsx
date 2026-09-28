@@ -3,9 +3,11 @@ import { Link2, Download, TrendingUp, TrendingDown, ArrowUpRight, Filter, Plus }
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '../page-header';
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
-import { backlinkStats, backlinkTable, backlinkGrowth, anchorTextDistribution, followNofollow, topReferringDomains, type BacklinkRow } from '@/lib/seo-data';
+import type { BacklinkRow } from '@/lib/seo-data';
+import { useBacklinksData } from '@/lib/api/queries';
 import { cn, matchesQuery } from '@/lib/utils';
 import { useModal } from '../modals/modal-provider';
+import { QueryFallback } from '../query-fallback';
 import { TableFilter, NoMatchesRow } from '../table-filter';
 
 const typeColor: Record<BacklinkRow['type'], string> = {
@@ -25,6 +27,9 @@ export function BacklinksScreen() {
   const { open } = useModal();
   const [filterOpen, setFilterOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const screenQuery = useBacklinksData();
+  if (!screenQuery.data) return <QueryFallback query={screenQuery} />;
+  const { backlinks: backlinkTable, stats: backlinkStats, growth: backlinkGrowth, anchors: anchorTextDistribution, followNofollow, topDomains: topReferringDomains } = screenQuery.data;
   const rows = backlinkTable.filter((row) =>
     matchesQuery(query, [row.source, row.target, row.anchor, row.type])
   );

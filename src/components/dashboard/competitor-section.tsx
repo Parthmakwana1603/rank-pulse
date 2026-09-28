@@ -1,6 +1,6 @@
 import { Card } from '@/components/ui/card';
 import { SectionHeader } from './section-header';
-import { competitors } from '@/lib/seo-data';
+import type { DashboardSummary } from '@/lib/api/queries';
 import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
 
@@ -11,7 +11,7 @@ const metrics = [
   { key: 'trafficValue', label: 'Traffic Value' },
 ] as const;
 
-export function CompetitorSection() {
+export function CompetitorSection({ competitors }: Pick<DashboardSummary, 'competitors'>) {
   return (
     <Card className="rounded-2xl p-5 shadow-sm">
       <SectionHeader

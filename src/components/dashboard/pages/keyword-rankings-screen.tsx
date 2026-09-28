@@ -3,9 +3,11 @@ import { Search, TrendingUp, TrendingDown, Minus, Download, Filter, ArrowUpDown 
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '../page-header';
 import { Area, AreaChart, ResponsiveContainer } from 'recharts';
-import { keywordFullTable, keywordSummary, type KeywordFull } from '@/lib/seo-data';
+import type { KeywordFull } from '@/lib/seo-data';
+import { useKeywordRankingsData } from '@/lib/api/queries';
 import { cn, matchesQuery } from '@/lib/utils';
 import { useModal } from '../modals/modal-provider';
+import { QueryFallback } from '../query-fallback';
 import { TableFilter, NoMatchesRow } from '../table-filter';
 
 const intentColor: Record<KeywordFull['intent'], string> = {
@@ -32,6 +34,9 @@ export function KeywordRankingsScreen() {
   const { open } = useModal();
   const [filterOpen, setFilterOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const screenQuery = useKeywordRankingsData();
+  if (!screenQuery.data) return <QueryFallback query={screenQuery} />;
+  const { keywords: keywordFullTable, summary: keywordSummary } = screenQuery.data;
   const rows = keywordFullTable.filter((row) =>
     matchesQuery(query, [row.keyword, row.intent, row.serp, row.url])
   );

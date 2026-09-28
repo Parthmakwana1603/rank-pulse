@@ -1,6 +1,8 @@
 import { ModalFooter, CancelButton, PrimaryButton } from './modal-shell';
 import { AlertCircle, AlertTriangle, Info, ExternalLink, Wrench } from 'lucide-react';
-import { auditChecks } from '@/lib/seo-data';
+import { useAuditChecks } from '@/lib/api/queries';
+import { QueryFallback } from '../query-fallback';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 const typeConfig = {
@@ -17,6 +19,9 @@ const mockPages = [
 ];
 
 export function AuditIssueModal({ onClose, issueTitle }: { onClose: () => void; issueTitle: string }) {
+  const checksQuery = useAuditChecks();
+  if (!checksQuery.data) return <QueryFallback query={checksQuery} skeleton={<Skeleton className="h-48 rounded-xl" />} />;
+  const auditChecks = checksQuery.data;
   const issue = auditChecks.find((c) => c.title === issueTitle) ?? auditChecks[0];
   const cfg = typeConfig[issue.type];
   const Icon = cfg.icon;

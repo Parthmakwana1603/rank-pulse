@@ -1,9 +1,11 @@
 import { BarChart3, Download, Plus, FileText, ShieldCheck, Search, Link2, Users, Sparkles, Calendar, Clock, CheckCircle2, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '../page-header';
-import { reportList, reportTemplates, type ReportItem } from '@/lib/seo-data';
+import type { ReportItem } from '@/lib/seo-data';
+import { useReportsData } from '@/lib/api/queries';
 import { cn } from '@/lib/utils';
 import { useModal } from '../modals/modal-provider';
+import { QueryFallback } from '../query-fallback';
 
 const typeIcon: Record<string, typeof FileText> = {
   FileText,
@@ -22,6 +24,9 @@ const statusConfig: Record<ReportItem['status'], { color: string; bg: string; ic
 
 export function ReportsScreen() {
   const { open } = useModal();
+  const screenQuery = useReportsData();
+  if (!screenQuery.data) return <QueryFallback query={screenQuery} />;
+  const { reports: reportList, templates: reportTemplates } = screenQuery.data;
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
       <PageHeader

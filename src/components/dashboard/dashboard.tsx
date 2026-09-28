@@ -23,9 +23,11 @@ import { AiSeoScreen } from './pages/ai-seo-screen';
 import { ReportsScreen } from './pages/reports-screen';
 import { SettingsScreen } from './pages/settings-screen';
 import { SchemaGeneratorScreen } from './pages/schema-generator-screen';
-import { kpis } from '@/lib/seo-data';
 import { cn } from '@/lib/utils';
 import { pageForPath, pathForPage } from '@/lib/routes';
+import { useDashboardData } from '@/lib/api/queries';
+import { QueryFallback } from './query-fallback';
+import { DashboardSkeleton } from './dashboard-skeleton';
 
 export function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -51,29 +53,7 @@ export function Dashboard() {
   const renderPage = () => {
     switch (activePage) {
       case 'Dashboard':
-        return (
-          <div className="mx-auto max-w-[1600px] space-y-6">
-            <HeroSection />
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              {kpis.map((kpi, i) => (
-                <KpiCard key={kpi.id} kpi={kpi} index={i} />
-              ))}
-            </div>
-            <QuickActions />
-            <ChartsSection />
-            <KeywordSection />
-            <SiteAuditSection />
-            <BacklinkSection />
-            <CompetitorSection />
-            <AiSeoSection />
-            <CoreWebVitalsSection />
-            <RecentActivitiesSection />
-            <footer className="flex items-center justify-between border-t pt-5 text-xs text-muted-foreground">
-              <p>RankPulse SEO Suite · Demo data for illustration</p>
-              <p>Powered by RankPulse Analytics</p>
-            </footer>
-          </div>
-        );
+        return <DashboardHome />;
       case 'Projects':
         return <ProjectsScreen />;
       case 'Keyword Rankings':
@@ -118,6 +98,36 @@ export function Dashboard() {
           {renderPage()}
         </main>
       </div>
+    </div>
+  );
+}
+
+function DashboardHome() {
+  const query = useDashboardData();
+  if (!query.data) return <QueryFallback query={query} skeleton={<DashboardSkeleton />} />;
+  const { summary, activities, projects } = query.data;
+
+  return (
+    <div className="mx-auto max-w-[1600px] space-y-6">
+      <HeroSection projectName={projects[0]?.name ?? 'Your project'} />
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {summary.kpis.map((kpi, i) => (
+          <KpiCard key={kpi.id} kpi={kpi} index={i} />
+        ))}
+      </div>
+      <QuickActions />
+      <ChartsSection {...summary} />
+      <KeywordSection {...summary} />
+      <SiteAuditSection {...summary} />
+      <BacklinkSection {...summary} />
+      <CompetitorSection {...summary} />
+      <AiSeoSection {...summary} />
+      <CoreWebVitalsSection {...summary} />
+      <RecentActivitiesSection recentActivities={activities} />
+      <footer className="flex items-center justify-between border-t pt-5 text-xs text-muted-foreground">
+        <p>RankPulse SEO Suite · Demo data for illustration</p>
+        <p>Powered by RankPulse Analytics</p>
+      </footer>
     </div>
   );
 }
