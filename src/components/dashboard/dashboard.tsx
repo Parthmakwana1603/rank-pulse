@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Sidebar } from './sidebar';
 import { Topbar } from './topbar';
 import { HeroSection } from './hero-section';
@@ -12,8 +13,6 @@ import { CompetitorSection } from './competitor-section';
 import { AiSeoSection } from './ai-seo-section';
 import { CoreWebVitalsSection } from './core-web-vitals-section';
 import { RecentActivitiesSection } from './recent-activities-section';
-import { DashboardSkeleton } from './dashboard-skeleton';
-import { PageSkeleton } from './page-skeleton';
 import { ProjectsScreen } from './pages/projects-screen';
 import { KeywordRankingsScreen } from './pages/keyword-rankings-screen';
 import { SiteAuditScreen } from './pages/site-audit-screen';
@@ -26,27 +25,30 @@ import { SettingsScreen } from './pages/settings-screen';
 import { SchemaGeneratorScreen } from './pages/schema-generator-screen';
 import { kpis } from '@/lib/seo-data';
 import { cn } from '@/lib/utils';
+import { pageForPath, pathForPage } from '@/lib/routes';
 
 export function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [activePage, setActivePage] = useState('Dashboard');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const activePage = pageForPath(location.pathname);
 
   useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => setLoading(false), 700);
-    return () => clearTimeout(timer);
+    window.scrollTo(0, 0);
+    document.title = activePage && activePage !== 'Dashboard'
+      ? `${activePage} · RankPulse`
+      : 'RankPulse · SEO Performance Dashboard';
   }, [activePage]);
 
   const handleNavigate = (label: string) => {
-    setActivePage(label);
+    navigate(pathForPage(label));
     setMobileNavOpen(false);
   };
 
-  const renderPage = () => {
-    if (loading) return <PageSkeleton />;
+  if (!activePage) return <Navigate to="/" replace />;
 
+  const renderPage = () => {
     switch (activePage) {
       case 'Dashboard':
         return (
@@ -92,8 +94,6 @@ export function Dashboard() {
         return <SettingsScreen />;
       case 'Schema Generator':
         return <SchemaGeneratorScreen />;
-      default:
-        return <DashboardSkeleton />;
     }
   };
 
@@ -115,7 +115,7 @@ export function Dashboard() {
       >
         <Topbar onNavigate={handleNavigate} onMenuClick={() => setMobileNavOpen(true)} />
         <main className="scrollbar-thin flex-1 overflow-y-auto p-4 md:p-6">
-          {loading && activePage === 'Dashboard' ? <DashboardSkeleton /> : renderPage()}
+          {renderPage()}
         </main>
       </div>
     </div>
