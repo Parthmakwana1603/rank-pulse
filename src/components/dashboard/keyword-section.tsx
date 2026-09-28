@@ -1,7 +1,7 @@
 import { TrendingUp, TrendingDown, Minus, ExternalLink, ArrowUpDown } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { SectionHeader } from './section-header';
-import { keywordTable } from '@/lib/seo-data';
+import type { DashboardSummary } from '@/lib/api/queries';
 import { cn } from '@/lib/utils';
 
 function difficultyColor(d: number) {
@@ -17,7 +17,7 @@ function rankColor(rank: number) {
   return 'bg-muted text-muted-foreground';
 }
 
-export function KeywordSection() {
+export function KeywordSection({ keywordTable }: Pick<DashboardSummary, 'keywordTable'>) {
   return (
     <Card className="rounded-2xl p-5 shadow-sm">
       <SectionHeader

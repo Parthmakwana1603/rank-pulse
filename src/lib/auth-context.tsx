@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 export interface AuthUser {
   name: string;
@@ -24,6 +25,7 @@ const mockUser: AuthUser = {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const queryClient = useQueryClient();
 
   const login = useCallback((email: string, password: string) => {
     if (!email.includes('@')) {
@@ -38,7 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     setUser(null);
-  }, []);
+    // Drop cached API data so the next user never sees the previous user's data.
+    queryClient.clear();
+  }, [queryClient]);
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>

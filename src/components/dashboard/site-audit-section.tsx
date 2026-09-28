@@ -1,7 +1,8 @@
 import { AlertTriangle, AlertCircle, Info, ChevronRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { SectionHeader } from './section-header';
-import { auditIssues, type AuditIssue } from '@/lib/seo-data';
+import type { AuditIssue } from '@/lib/seo-data';
+import type { DashboardSummary } from '@/lib/api/queries';
 import { cn } from '@/lib/utils';
 
 const typeConfig: Record<
@@ -28,7 +29,7 @@ const typeConfig: Record<
   },
 };
 
-export function SiteAuditSection() {
+export function SiteAuditSection({ auditIssues }: Pick<DashboardSummary, 'auditIssues'>) {
   const errors = auditIssues.filter((i) => i.type === 'error');
   const warnings = auditIssues.filter((i) => i.type === 'warning');
   const notices = auditIssues.filter((i) => i.type === 'notice');

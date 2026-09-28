@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Sidebar } from './sidebar';
 import { Topbar } from './topbar';
 import { HeroSection } from './hero-section';
@@ -12,8 +13,6 @@ import { CompetitorSection } from './competitor-section';
 import { AiSeoSection } from './ai-seo-section';
 import { CoreWebVitalsSection } from './core-web-vitals-section';
 import { RecentActivitiesSection } from './recent-activities-section';
-import { DashboardSkeleton } from './dashboard-skeleton';
-import { PageSkeleton } from './page-skeleton';
 import { ProjectsScreen } from './pages/projects-screen';
 import { KeywordRankingsScreen } from './pages/keyword-rankings-screen';
 import { SiteAuditScreen } from './pages/site-audit-screen';
@@ -24,52 +23,37 @@ import { AiSeoScreen } from './pages/ai-seo-screen';
 import { ReportsScreen } from './pages/reports-screen';
 import { SettingsScreen } from './pages/settings-screen';
 import { SchemaGeneratorScreen } from './pages/schema-generator-screen';
-import { kpis } from '@/lib/seo-data';
 import { cn } from '@/lib/utils';
+import { pageForPath, pathForPage } from '@/lib/routes';
+import { useDashboardData } from '@/lib/api/queries';
+import { QueryFallback } from './query-fallback';
+import { DashboardSkeleton } from './dashboard-skeleton';
 
 export function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [loading, setLoading] = useState(true);
-  const [activePage, setActivePage] = useState('Dashboard');
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const activePage = pageForPath(location.pathname);
 
   useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => setLoading(false), 700);
-    return () => clearTimeout(timer);
+    window.scrollTo(0, 0);
+    document.title = activePage && activePage !== 'Dashboard'
+      ? `${activePage} · RankPulse`
+      : 'RankPulse · SEO Performance Dashboard';
   }, [activePage]);
 
   const handleNavigate = (label: string) => {
-    setActivePage(label);
+    navigate(pathForPage(label));
+    setMobileNavOpen(false);
   };
 
-  const renderPage = () => {
-    if (loading) return <PageSkeleton />;
+  if (!activePage) return <Navigate to="/" replace />;
 
+  const renderPage = () => {
     switch (activePage) {
       case 'Dashboard':
-        return (
-          <div className="mx-auto max-w-[1600px] space-y-6">
-            <HeroSection />
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              {kpis.map((kpi, i) => (
-                <KpiCard key={kpi.id} kpi={kpi} index={i} />
-              ))}
-            </div>
-            <QuickActions />
-            <ChartsSection />
-            <KeywordSection />
-            <SiteAuditSection />
-            <BacklinkSection />
-            <CompetitorSection />
-            <AiSeoSection />
-            <CoreWebVitalsSection />
-            <RecentActivitiesSection />
-            <footer className="flex items-center justify-between border-t pt-5 text-xs text-muted-foreground">
-              <p>RankPulse SEO Suite · Demo data for illustration</p>
-              <p>Powered by RankPulse Analytics</p>
-            </footer>
-          </div>
-        );
+        return <DashboardHome />;
       case 'Projects':
         return <ProjectsScreen />;
       case 'Keyword Rankings':
@@ -90,8 +74,6 @@ export function Dashboard() {
         return <SettingsScreen />;
       case 'Schema Generator':
         return <SchemaGeneratorScreen />;
-      default:
-        return <DashboardSkeleton />;
     }
   };
 
@@ -100,6 +82,8 @@ export function Dashboard() {
       <Sidebar
         open={sidebarOpen}
         onToggle={() => setSidebarOpen((v) => !v)}
+        mobileOpen={mobileNavOpen}
+        onMobileClose={() => setMobileNavOpen(false)}
         active={activePage}
         onNavigate={handleNavigate}
       />
@@ -109,11 +93,41 @@ export function Dashboard() {
           sidebarOpen ? 'lg:pl-64' : 'lg:pl-[76px]'
         )}
       >
-        <Topbar onNavigate={handleNavigate} />
-        <main className="scrollbar-thin flex-1 overflow-y-auto p-4 md:p-6">
-          {loading && activePage === 'Dashboard' ? <DashboardSkeleton /> : renderPage()}
+        <Topbar onNavigate={handleNavigate} onMenuClick={() => setMobileNavOpen(true)} />
+        <main className="min-w-0 flex-1 p-4 md:p-6">
+          {renderPage()}
         </main>
       </div>
+    </div>
+  );
+}
+
+function DashboardHome() {
+  const query = useDashboardData();
+  if (!query.data) return <QueryFallback query={query} skeleton={<DashboardSkeleton />} />;
+  const { summary, activities, projects } = query.data;
+
+  return (
+    <div className="mx-auto max-w-[1600px] space-y-6">
+      <HeroSection projectName={projects[0]?.name ?? 'Your project'} />
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {summary.kpis.map((kpi, i) => (
+          <KpiCard key={kpi.id} kpi={kpi} index={i} />
+        ))}
+      </div>
+      <QuickActions />
+      <ChartsSection {...summary} />
+      <KeywordSection {...summary} />
+      <SiteAuditSection {...summary} />
+      <BacklinkSection {...summary} />
+      <CompetitorSection {...summary} />
+      <AiSeoSection {...summary} />
+      <CoreWebVitalsSection {...summary} />
+      <RecentActivitiesSection recentActivities={activities} />
+      <footer className="flex items-center justify-between border-t pt-5 text-xs text-muted-foreground">
+        <p>RankPulse SEO Suite · Demo data for illustration</p>
+        <p>Powered by RankPulse Analytics</p>
+      </footer>
     </div>
   );
 }

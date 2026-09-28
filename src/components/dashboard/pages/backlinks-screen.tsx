@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import { Link2, Download, TrendingUp, TrendingDown, ArrowUpRight, Filter, Plus } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '../page-header';
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
-import { backlinkStats, backlinkTable, backlinkGrowth, anchorTextDistribution, followNofollow, topReferringDomains, type BacklinkRow } from '@/lib/seo-data';
-import { cn } from '@/lib/utils';
+import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
+import type { BacklinkRow } from '@/lib/seo-data';
+import { useBacklinksData } from '@/lib/api/queries';
+import { cn, matchesQuery } from '@/lib/utils';
 import { useModal } from '../modals/modal-provider';
+import { QueryFallback } from '../query-fallback';
+import { TableFilter, NoMatchesRow } from '../table-filter';
 
 const typeColor: Record<BacklinkRow['type'], string> = {
   Follow: 'bg-success/10 text-success',
@@ -21,6 +25,14 @@ const tooltipStyle = {
 
 export function BacklinksScreen() {
   const { open } = useModal();
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const screenQuery = useBacklinksData();
+  if (!screenQuery.data) return <QueryFallback query={screenQuery} />;
+  const { backlinks: backlinkTable, stats: backlinkStats, growth: backlinkGrowth, anchors: anchorTextDistribution, followNofollow, topDomains: topReferringDomains } = screenQuery.data;
+  const rows = backlinkTable.filter((row) =>
+    matchesQuery(query, [row.source, row.target, row.anchor, row.type])
+  );
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
       <PageHeader
@@ -29,7 +41,14 @@ export function BacklinksScreen() {
         icon={<Link2 className="h-5 w-5" />}
         actions={
           <>
-            <button className="flex h-10 items-center gap-2 rounded-xl border bg-card px-4 text-sm font-medium transition-colors hover:bg-muted">
+            <button
+              onClick={() => setFilterOpen((v) => !v)}
+              aria-pressed={filterOpen}
+              className={cn(
+                'flex h-10 items-center gap-2 rounded-xl border bg-card px-4 text-sm font-medium transition-colors hover:bg-muted',
+                filterOpen && 'border-primary text-primary'
+              )}
+            >
               <Filter className="h-4 w-4" />
               Filter
             </button>
@@ -158,7 +177,14 @@ export function BacklinksScreen() {
 
       <Card className="rounded-2xl p-5 shadow-sm">
         <h2 className="text-base font-semibold">All Backlinks</h2>
-        <p className="mt-0.5 text-sm text-muted-foreground">{backlinkTable.length} links found</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          {rows.length === backlinkTable.length
+            ? `${backlinkTable.length} links found`
+            : `${rows.length} of ${backlinkTable.length} links`}
+        </p>
+        {filterOpen && (
+          <TableFilter value={query} onChange={setQuery} placeholder="Filter by source, target, anchor or type…" />
+        )}
         <div className="scrollbar-thin mt-4 overflow-x-auto">
           <table className="w-full min-w-[860px] text-sm">
             <thead>
@@ -173,7 +199,8 @@ export function BacklinksScreen() {
               </tr>
             </thead>
             <tbody>
-              {backlinkTable.map((row) => (
+              {rows.length === 0 && <NoMatchesRow colSpan={7} />}
+              {rows.map((row) => (
                 <tr key={row.source + row.target} className="border-b transition-colors last:border-0 hover:bg-muted/40">
                   <td className="py-3 pr-4 font-medium">{row.source}</td>
                   <td className="py-3 pr-4 text-muted-foreground">{row.authority}</td>

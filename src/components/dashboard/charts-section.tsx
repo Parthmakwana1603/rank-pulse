@@ -20,15 +20,7 @@ import {
 } from 'recharts';
 import { Card } from '@/components/ui/card';
 import { SectionHeader } from './section-header';
-import {
-  trafficTrend,
-  keywordDistribution,
-  trafficSources,
-  countryTraffic,
-  deviceBreakdown,
-  monthlyGrowth,
-  topLandingPages,
-} from '@/lib/seo-data';
+import type { DashboardSummary } from '@/lib/api/queries';
 import { TrendingUp, TrendingDown, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -59,7 +51,26 @@ function ChartCard({
   );
 }
 
-export function ChartsSection() {
+type ChartsSectionProps = Pick<
+  DashboardSummary,
+  | 'trafficTrend'
+  | 'keywordDistribution'
+  | 'trafficSources'
+  | 'countryTraffic'
+  | 'deviceBreakdown'
+  | 'monthlyGrowth'
+  | 'topLandingPages'
+>;
+
+export function ChartsSection({
+  trafficTrend,
+  keywordDistribution,
+  trafficSources,
+  countryTraffic,
+  deviceBreakdown,
+  monthlyGrowth,
+  topLandingPages,
+}: ChartsSectionProps) {
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
       <ChartCard

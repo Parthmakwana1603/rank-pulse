@@ -2,9 +2,11 @@ import { FolderKanban, Plus, MoreHorizontal, TrendingUp, TrendingDown } from 'lu
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '../page-header';
 import { Area, AreaChart, ResponsiveContainer } from 'recharts';
-import { projectList, type ProjectItem } from '@/lib/seo-data';
+import type { ProjectItem } from '@/lib/seo-data';
+import { useProjects } from '@/lib/api/queries';
 import { cn } from '@/lib/utils';
 import { useModal } from '../modals/modal-provider';
+import { QueryFallback } from '../query-fallback';
 
 const statusConfig: Record<ProjectItem['status'], { label: string; color: string; bg: string }> = {
   active: { label: 'Active', color: 'text-success', bg: 'bg-success/10' },
@@ -14,6 +16,9 @@ const statusConfig: Record<ProjectItem['status'], { label: string; color: string
 
 export function ProjectsScreen() {
   const { open } = useModal();
+  const projectsQuery = useProjects();
+  if (!projectsQuery.data) return <QueryFallback query={projectsQuery} />;
+  const projectList = projectsQuery.data;
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
       <PageHeader

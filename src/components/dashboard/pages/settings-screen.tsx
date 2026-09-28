@@ -3,7 +3,10 @@ import { Settings, User, Bell, Plug, CreditCard, Palette, Code, Check, Download 
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '../page-header';
 import { useTheme } from '@/components/theme-provider';
-import { settingsSections, integrations, notificationSettings, planInfo } from '@/lib/seo-data';
+import { settingsSections } from '@/lib/seo-data';
+import type * as seo from '@/lib/seo-data';
+import { useSettingsData } from '@/lib/api/queries';
+import { QueryFallback } from '../query-fallback';
 import { cn } from '@/lib/utils';
 
 const iconMap: Record<string, typeof User> = {
@@ -16,6 +19,21 @@ const iconMap: Record<string, typeof User> = {
 };
 
 export function SettingsScreen() {
+  const screenQuery = useSettingsData();
+  if (!screenQuery.data) return <QueryFallback query={screenQuery} />;
+  const { notificationSettings, integrations, billing } = screenQuery.data;
+  return (
+    <SettingsView notificationSettings={notificationSettings} integrations={integrations} planInfo={billing} />
+  );
+}
+
+interface SettingsViewProps {
+  notificationSettings: typeof seo.notificationSettings;
+  integrations: typeof seo.integrations;
+  planInfo: typeof seo.planInfo;
+}
+
+function SettingsView({ notificationSettings, integrations, planInfo }: SettingsViewProps) {
   const { theme, toggleTheme } = useTheme();
   const [activeSection, setActiveSection] = useState('profile');
   const [notifState, setNotifState] = useState(notificationSettings);

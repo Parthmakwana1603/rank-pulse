@@ -2,9 +2,11 @@ import { ShieldCheck, AlertCircle, AlertTriangle, Info, RefreshCw, Download, Che
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '../page-header';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
-import { auditChecks, auditHistory, type AuditCheck } from '@/lib/seo-data';
+import type { AuditCheck } from '@/lib/seo-data';
+import { useSiteAuditData } from '@/lib/api/queries';
 import { cn } from '@/lib/utils';
 import { useModal } from '../modals/modal-provider';
+import { QueryFallback } from '../query-fallback';
 
 const typeConfig: Record<AuditCheck['type'], { icon: typeof AlertCircle; color: string; bg: string; ring: string }> = {
   error: { icon: AlertCircle, color: 'text-destructive', bg: 'bg-destructive/10', ring: 'ring-destructive/20' },
@@ -21,6 +23,9 @@ const tooltipStyle = {
 
 export function SiteAuditScreen() {
   const { open } = useModal();
+  const screenQuery = useSiteAuditData();
+  if (!screenQuery.data) return <QueryFallback query={screenQuery} />;
+  const { checks: auditChecks, history: auditHistory } = screenQuery.data;
   const errors = auditChecks.filter((c) => c.type === 'error');
   const warnings = auditChecks.filter((c) => c.type === 'warning');
   const notices = auditChecks.filter((c) => c.type === 'notice');

@@ -2,9 +2,10 @@ import { Users, Download, TrendingUp, Crown, Target, Plus } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '../page-header';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
-import { competitors, competitorKeywords, competitorGap } from '@/lib/seo-data';
+import { useCompetitorsData } from '@/lib/api/queries';
 import { cn } from '@/lib/utils';
 import { useModal } from '../modals/modal-provider';
+import { QueryFallback } from '../query-fallback';
 
 const tooltipStyle = {
   backgroundColor: 'hsl(var(--popover))',
@@ -22,6 +23,9 @@ const metrics = [
 
 export function CompetitorsScreen() {
   const { open } = useModal();
+  const screenQuery = useCompetitorsData();
+  if (!screenQuery.data) return <QueryFallback query={screenQuery} />;
+  const { competitors, keywords: competitorKeywords, gap: competitorGap } = screenQuery.data;
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
       <PageHeader

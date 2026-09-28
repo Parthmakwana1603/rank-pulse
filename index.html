@@ -8,6 +8,17 @@
     <meta property="og:image" content="https://bolt.new/static/og_default.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://bolt.new/static/og_default.png" />
+    <script>
+      // Apply the saved theme before React mounts to avoid a flash of the wrong theme.
+      (function () {
+        var theme = 'dark';
+        try {
+          var stored = localStorage.getItem('rankpulse-theme');
+          if (stored === 'light' || stored === 'dark') theme = stored;
+        } catch (e) {}
+        document.documentElement.classList.add(theme);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -2,12 +2,7 @@ import { TrendingUp, TrendingDown, ArrowUpRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { SectionHeader } from './section-header';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
-import {
-  backlinkStats,
-  anchorTextDistribution,
-  followNofollow,
-  topReferringDomains,
-} from '@/lib/seo-data';
+import type { DashboardSummary } from '@/lib/api/queries';
 import { cn } from '@/lib/utils';
 
 const tooltipStyle = {
@@ -17,7 +12,20 @@ const tooltipStyle = {
   fontSize: '0.75rem',
 };
 
-export function BacklinkSection() {
+type BacklinkSectionProps = Pick<
+  DashboardSummary,
+  | 'backlinkStats'
+  | 'anchorTextDistribution'
+  | 'followNofollow'
+  | 'topReferringDomains'
+>;
+
+export function BacklinkSection({
+  backlinkStats,
+  anchorTextDistribution,
+  followNofollow,
+  topReferringDomains,
+}: BacklinkSectionProps) {
   return (
     <Card className="rounded-2xl p-5 shadow-sm">
       <SectionHeader

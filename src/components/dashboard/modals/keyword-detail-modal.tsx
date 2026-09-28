@@ -1,7 +1,9 @@
 import { ModalFooter, CancelButton, PrimaryButton } from './modal-shell';
 import { TrendingUp, TrendingDown, ExternalLink } from 'lucide-react';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { keywordFullTable } from '@/lib/seo-data';
+import { useKeywords } from '@/lib/api/queries';
+import { QueryFallback } from '../query-fallback';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 const tooltipStyle = {
@@ -12,6 +14,9 @@ const tooltipStyle = {
 };
 
 export function KeywordDetailModal({ onClose, keyword }: { onClose: () => void; keyword: string }) {
+  const keywordsQuery = useKeywords();
+  if (!keywordsQuery.data) return <QueryFallback query={keywordsQuery} skeleton={<Skeleton className="h-48 rounded-xl" />} />;
+  const keywordFullTable = keywordsQuery.data;
   const data = keywordFullTable.find((k) => k.keyword === keyword) ?? keywordFullTable[0];
   const trendData = data.trend30.map((v, i) => ({ day: `D${i + 1}`, rank: v }));
   const change = data.previousRank - data.rank;

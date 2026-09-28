@@ -1,9 +1,11 @@
 import { BarChart3, Download, Plus, FileText, ShieldCheck, Search, Link2, Users, Sparkles, Calendar, Clock, CheckCircle2, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '../page-header';
-import { reportList, reportTemplates, type ReportItem } from '@/lib/seo-data';
+import type { ReportItem } from '@/lib/seo-data';
+import { useReportsData } from '@/lib/api/queries';
 import { cn } from '@/lib/utils';
 import { useModal } from '../modals/modal-provider';
+import { QueryFallback } from '../query-fallback';
 
 const typeIcon: Record<string, typeof FileText> = {
   FileText,
@@ -22,6 +24,9 @@ const statusConfig: Record<ReportItem['status'], { color: string; bg: string; ic
 
 export function ReportsScreen() {
   const { open } = useModal();
+  const screenQuery = useReportsData();
+  if (!screenQuery.data) return <QueryFallback query={screenQuery} />;
+  const { reports: reportList, templates: reportTemplates } = screenQuery.data;
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
       <PageHeader
@@ -40,7 +45,7 @@ export function ReportsScreen() {
       />
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="rounded-2xl p-5 shadow-sm lg:col-span-2">
+        <Card className="min-w-0 rounded-2xl p-5 shadow-sm lg:col-span-2">
           <h2 className="text-base font-semibold">Recent Reports</h2>
           <p className="mt-0.5 text-sm text-muted-foreground">{reportList.length} reports</p>
           <div className="mt-4 space-y-2">
@@ -57,7 +62,7 @@ export function ReportsScreen() {
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="truncate text-sm font-medium">{r.name}</p>
-                    <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         {r.date}
@@ -66,7 +71,7 @@ export function ReportsScreen() {
                       {r.size !== '—' && <span>{r.size}</span>}
                     </div>
                   </div>
-                  <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium', status.bg, status.color)}>
+                  <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium', status.bg, status.color)}>
                     <StatusIcon className={cn('h-3 w-3', r.status === 'Generating' && 'animate-spin')} />
                     {r.status}
                   </span>

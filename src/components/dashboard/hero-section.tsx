@@ -1,8 +1,7 @@
 import { Download, RefreshCw, Sparkles } from 'lucide-react';
-import { projects } from '@/lib/seo-data';
 import { useModal } from './modals/modal-provider';
 
-export function HeroSection() {
+export function HeroSection({ projectName }: { projectName: string }) {
   const { open } = useModal();
   return (
     <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-card to-accent/10 p-6 md:p-8">
@@ -15,7 +14,7 @@ export function HeroSection() {
             Welcome back, Jamie
           </div>
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-            {projects[0].name}
+            {projectName}
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
             Last updated 2 minutes ago · Tracking 18,420 keywords across 4,820 pages

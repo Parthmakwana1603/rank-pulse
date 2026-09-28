@@ -1,9 +1,13 @@
 import { ModalFooter, CancelButton, PrimaryButton } from './modal-shell';
-import { TrendingUp, TrendingDown, ExternalLink, Lightbulb } from 'lucide-react';
-import { contentList } from '@/lib/seo-data';
-import { cn } from '@/lib/utils';
+import { TrendingUp, ExternalLink, Lightbulb } from 'lucide-react';
+import { useContent } from '@/lib/api/queries';
+import { QueryFallback } from '../query-fallback';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function ContentDetailModal({ onClose, title }: { onClose: () => void; title: string }) {
+  const contentQuery = useContent();
+  if (!contentQuery.data) return <QueryFallback query={contentQuery} skeleton={<Skeleton className="h-48 rounded-xl" />} />;
+  const contentList = contentQuery.data;
   const item = contentList.find((c) => c.title === title) ?? contentList[0];
 
   const tips = [

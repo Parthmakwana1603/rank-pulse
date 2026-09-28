@@ -1,7 +1,7 @@
 import { Gauge } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { SectionHeader } from './section-header';
-import { coreWebVitals } from '@/lib/seo-data';
+import type { DashboardSummary } from '@/lib/api/queries';
 import { cn } from '@/lib/utils';
 
 const scoreConfig = {
@@ -10,7 +10,7 @@ const scoreConfig = {
   poor: { color: 'text-destructive', bg: 'bg-destructive/10', ring: 'ring-destructive/30', label: 'Poor' },
 } as const;
 
-export function CoreWebVitalsSection() {
+export function CoreWebVitalsSection({ coreWebVitals }: Pick<DashboardSummary, 'coreWebVitals'>) {
   return (
     <Card className="rounded-2xl p-5 shadow-sm">
       <SectionHeader

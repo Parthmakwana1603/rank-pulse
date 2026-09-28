@@ -1,7 +1,9 @@
 import { ModalFooter, CancelButton, PrimaryButton, FieldLabel, SelectInput } from './modal-shell';
 import { FileText, ShieldCheck, Search, Link2, Users, Sparkles, Check } from 'lucide-react';
 import { useState } from 'react';
-import { reportTemplates } from '@/lib/seo-data';
+import { useReportTemplates } from '@/lib/api/queries';
+import { QueryFallback } from '../query-fallback';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 const iconMap: Record<string, typeof FileText> = {
@@ -15,6 +17,9 @@ const iconMap: Record<string, typeof FileText> = {
 
 export function GenerateReportModal({ onClose }: { onClose: () => void }) {
   const [selected, setSelected] = useState(0);
+  const templatesQuery = useReportTemplates();
+  if (!templatesQuery.data) return <QueryFallback query={templatesQuery} skeleton={<Skeleton className="h-48 rounded-xl" />} />;
+  const reportTemplates = templatesQuery.data;
 
   return (
     <div className="space-y-4">

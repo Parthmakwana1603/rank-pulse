@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { SectionHeader } from './section-header';
-import { recentActivities, type Activity } from '@/lib/seo-data';
+import type { Activity } from '@/lib/seo-data';
 import { cn } from '@/lib/utils';
 
 const typeConfig: Record<
@@ -22,7 +22,7 @@ const typeConfig: Record<
   ai: { icon: Sparkles, color: 'text-chart-4', bg: 'bg-chart-4/10' },
 };
 
-export function RecentActivitiesSection() {
+export function RecentActivitiesSection({ recentActivities }: { recentActivities: Activity[] }) {
   return (
     <Card className="rounded-2xl p-5 shadow-sm">
       <SectionHeader
