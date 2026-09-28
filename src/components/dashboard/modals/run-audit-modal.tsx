@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ModalFooter, CancelButton, PrimaryButton, FieldLabel, SelectInput, TextInput } from './modal-shell';
-import { ShieldCheck, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ShieldCheck, Loader2, CheckCircle2 } from 'lucide-react';
 
 const steps = ['Configuring', 'Crawling pages', 'Analyzing issues', 'Complete'] as const;
 

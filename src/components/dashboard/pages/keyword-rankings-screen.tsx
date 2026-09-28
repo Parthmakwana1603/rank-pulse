@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { Search, TrendingUp, TrendingDown, Minus, Download, Filter, ArrowUpDown } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '../page-header';
-import { Area, AreaChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { Area, AreaChart, ResponsiveContainer } from 'recharts';
 import { keywordFullTable, keywordSummary, type KeywordFull } from '@/lib/seo-data';
-import { cn } from '@/lib/utils';
+import { cn, matchesQuery } from '@/lib/utils';
 import { useModal } from '../modals/modal-provider';
+import { TableFilter, NoMatchesRow } from '../table-filter';
 
 const intentColor: Record<KeywordFull['intent'], string> = {
   Informational: 'bg-primary/10 text-primary',
@@ -26,15 +28,13 @@ function rankColor(rank: number) {
   return 'bg-muted text-muted-foreground';
 }
 
-const tooltipStyle = {
-  backgroundColor: 'hsl(var(--popover))',
-  border: '1px solid hsl(var(--border))',
-  borderRadius: '0.75rem',
-  fontSize: '0.75rem',
-};
-
 export function KeywordRankingsScreen() {
   const { open } = useModal();
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const rows = keywordFullTable.filter((row) =>
+    matchesQuery(query, [row.keyword, row.intent, row.serp, row.url])
+  );
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
       <PageHeader
@@ -44,8 +44,12 @@ export function KeywordRankingsScreen() {
         actions={
           <>
             <button
-              onClick={() => open('add-keyword')}
-              className="flex h-10 items-center gap-2 rounded-xl border bg-card px-4 text-sm font-medium transition-colors hover:bg-muted"
+              onClick={() => setFilterOpen((v) => !v)}
+              aria-pressed={filterOpen}
+              className={cn(
+                'flex h-10 items-center gap-2 rounded-xl border bg-card px-4 text-sm font-medium transition-colors hover:bg-muted',
+                filterOpen && 'border-primary text-primary'
+              )}
             >
               <Filter className="h-4 w-4" />
               Filter
@@ -84,7 +88,9 @@ export function KeywordRankingsScreen() {
           <div>
             <h2 className="text-base font-semibold">All Keywords</h2>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              {keywordFullTable.length} tracked keywords
+              {rows.length === keywordFullTable.length
+                ? `${keywordFullTable.length} tracked keywords`
+                : `${rows.length} of ${keywordFullTable.length} tracked keywords`}
             </p>
           </div>
           <button className="flex h-9 items-center gap-2 rounded-lg border bg-card px-3 text-sm font-medium transition-colors hover:bg-muted">
@@ -92,6 +98,9 @@ export function KeywordRankingsScreen() {
             Sort
           </button>
         </div>
+        {filterOpen && (
+          <TableFilter value={query} onChange={setQuery} placeholder="Filter by keyword, intent, SERP feature or URL…" />
+        )}
         <div className="scrollbar-thin mt-4 overflow-x-auto">
           <table className="w-full min-w-[960px] text-sm">
             <thead>
@@ -109,7 +118,8 @@ export function KeywordRankingsScreen() {
               </tr>
             </thead>
             <tbody>
-              {keywordFullTable.map((row) => {
+              {rows.length === 0 && <NoMatchesRow colSpan={10} />}
+              {rows.map((row) => {
                 const change = row.previousRank - row.rank;
                 return (
                   <tr key={row.keyword} onClick={() => open('keyword-detail', row.keyword)} className="cursor-pointer border-b transition-colors last:border-0 hover:bg-muted/40">

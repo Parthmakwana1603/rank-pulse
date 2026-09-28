@@ -10,17 +10,18 @@ import {
   LogOut,
   User,
   Settings,
+  Menu,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/theme-provider';
 import { useAuth } from '@/lib/auth-context';
 import { projects, notifications } from '@/lib/seo-data';
 
 interface TopbarProps {
   onNavigate: (label: string) => void;
+  onMenuClick: () => void;
 }
 
-export function Topbar({ onNavigate }: TopbarProps) {
+export function Topbar({ onNavigate, onMenuClick }: TopbarProps) {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const [projectOpen, setProjectOpen] = useState(false);
@@ -30,6 +31,13 @@ export function Topbar({ onNavigate }: TopbarProps) {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-xl md:px-6">
+      <button
+        onClick={onMenuClick}
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border bg-card transition-colors hover:bg-muted lg:hidden"
+        aria-label="Open menu"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
       <div className="relative hidden flex-1 md:block">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input

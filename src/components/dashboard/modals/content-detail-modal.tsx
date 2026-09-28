@@ -1,7 +1,6 @@
 import { ModalFooter, CancelButton, PrimaryButton } from './modal-shell';
-import { TrendingUp, TrendingDown, ExternalLink, Lightbulb } from 'lucide-react';
+import { TrendingUp, ExternalLink, Lightbulb } from 'lucide-react';
 import { contentList } from '@/lib/seo-data';
-import { cn } from '@/lib/utils';
 
 export function ContentDetailModal({ onClose, title }: { onClose: () => void; title: string }) {
   const item = contentList.find((c) => c.title === title) ?? contentList[0];

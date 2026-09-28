@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 
 export function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activePage, setActivePage] = useState('Dashboard');
 
@@ -40,6 +41,7 @@ export function Dashboard() {
 
   const handleNavigate = (label: string) => {
     setActivePage(label);
+    setMobileNavOpen(false);
   };
 
   const renderPage = () => {
@@ -100,6 +102,8 @@ export function Dashboard() {
       <Sidebar
         open={sidebarOpen}
         onToggle={() => setSidebarOpen((v) => !v)}
+        mobileOpen={mobileNavOpen}
+        onMobileClose={() => setMobileNavOpen(false)}
         active={activePage}
         onNavigate={handleNavigate}
       />
@@ -109,7 +113,7 @@ export function Dashboard() {
           sidebarOpen ? 'lg:pl-64' : 'lg:pl-[76px]'
         )}
       >
-        <Topbar onNavigate={handleNavigate} />
+        <Topbar onNavigate={handleNavigate} onMenuClick={() => setMobileNavOpen(true)} />
         <main className="scrollbar-thin flex-1 overflow-y-auto p-4 md:p-6">
           {loading && activePage === 'Dashboard' ? <DashboardSkeleton /> : renderPage()}
         </main>

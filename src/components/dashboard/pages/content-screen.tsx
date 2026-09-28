@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { FileText, Plus, TrendingUp, TrendingDown, MoreHorizontal, Filter } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '../page-header';
 import { contentList, contentStats, type ContentItem } from '@/lib/seo-data';
-import { cn } from '@/lib/utils';
+import { cn, matchesQuery } from '@/lib/utils';
 import { useModal } from '../modals/modal-provider';
+import { TableFilter, NoMatchesRow } from '../table-filter';
 
 const statusConfig: Record<ContentItem['status'], { color: string; bg: string }> = {
   Published: { color: 'text-success', bg: 'bg-success/10' },
@@ -27,6 +29,11 @@ function scoreColor(s: number) {
 
 export function ContentScreen() {
   const { open } = useModal();
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const rows = contentList.filter((item) =>
+    matchesQuery(query, [item.title, item.url, item.type, item.status])
+  );
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
       <PageHeader
@@ -35,7 +42,14 @@ export function ContentScreen() {
         icon={<FileText className="h-5 w-5" />}
         actions={
           <>
-            <button className="flex h-10 items-center gap-2 rounded-xl border bg-card px-4 text-sm font-medium transition-colors hover:bg-muted">
+            <button
+              onClick={() => setFilterOpen((v) => !v)}
+              aria-pressed={filterOpen}
+              className={cn(
+                'flex h-10 items-center gap-2 rounded-xl border bg-card px-4 text-sm font-medium transition-colors hover:bg-muted',
+                filterOpen && 'border-primary text-primary'
+              )}
+            >
               <Filter className="h-4 w-4" />
               Filter
             </button>
@@ -72,9 +86,16 @@ export function ContentScreen() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-base font-semibold">Content Library</h2>
-            <p className="mt-0.5 text-sm text-muted-foreground">{contentList.length} pages tracked</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {rows.length === contentList.length
+                ? `${contentList.length} pages tracked`
+                : `${rows.length} of ${contentList.length} pages`}
+            </p>
           </div>
         </div>
+        {filterOpen && (
+          <TableFilter value={query} onChange={setQuery} placeholder="Filter by title, URL, type or status…" />
+        )}
         <div className="scrollbar-thin mt-4 overflow-x-auto">
           <table className="w-full min-w-[820px] text-sm">
             <thead>
@@ -90,7 +111,8 @@ export function ContentScreen() {
               </tr>
             </thead>
             <tbody>
-              {contentList.map((item) => {
+              {rows.length === 0 && <NoMatchesRow colSpan={8} />}
+              {rows.map((item) => {
                 const status = statusConfig[item.status];
                 return (
                   <tr key={item.url} onClick={() => open('content-detail', item.title)} className="cursor-pointer border-b transition-colors last:border-0 hover:bg-muted/40">
