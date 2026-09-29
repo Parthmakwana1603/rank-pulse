@@ -297,7 +297,10 @@ export const notifications = [
 /* ---------- Projects screen ---------- */
 
 export interface ProjectItem {
+  /** Set for projects stored in a backend; mock projects are identified by name. */
+  id?: string;
   name: string;
+  websiteUrl?: string;
   favicon: string;
   status: 'active' | 'paused' | 'warning';
   traffic: string;

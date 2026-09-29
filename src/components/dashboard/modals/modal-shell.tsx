@@ -70,6 +70,7 @@ export function ModalFooter({ children }: { children: React.ReactNode }) {
 export function CancelButton({ onClose }: { onClose: () => void }) {
   return (
     <button
+      type="button"
       onClick={onClose}
       className="h-10 rounded-xl border bg-card px-4 text-sm font-medium transition-colors hover:bg-muted"
     >
@@ -81,47 +82,75 @@ export function CancelButton({ onClose }: { onClose: () => void }) {
 export function PrimaryButton({
   children,
   onClick,
+  disabled,
+  type = 'button',
 }: {
   children: React.ReactNode;
   onClick?: () => void;
+  disabled?: boolean;
+  type?: 'button' | 'submit';
 }) {
   return (
     <button
+      type={type}
       onClick={onClick}
-      className="h-10 rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/30 transition-all hover:bg-primary/90"
+      disabled={disabled}
+      className="flex h-10 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/30 transition-all hover:bg-primary/90 disabled:opacity-60"
     >
       {children}
     </button>
   );
 }
 
-export function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <label className="text-xs font-medium text-muted-foreground">{children}</label>;
+export function FieldLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
+  return (
+    <label htmlFor={htmlFor} className="text-xs font-medium text-muted-foreground">
+      {children}
+    </label>
+  );
 }
 
-export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+export function FieldError({ id, children }: { id: string; children?: React.ReactNode }) {
+  if (!children) return null;
+  return (
+    <p id={id} className="mt-1 text-xs text-destructive">
+      {children}
+    </p>
+  );
+}
+
+export function TextInput({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className="mt-1 h-10 w-full rounded-xl border bg-muted/40 px-3 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20"
+      className={cn(
+        'mt-1 h-10 w-full rounded-xl border bg-muted/40 px-3 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20',
+        className
+      )}
     />
   );
 }
 
-export function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function TextArea({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <textarea
       {...props}
-      className="mt-1 w-full rounded-xl border bg-muted/40 px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20"
+      className={cn(
+        'mt-1 w-full rounded-xl border bg-muted/40 px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20',
+        className
+      )}
     />
   );
 }
 
-export function SelectInput(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
+export function SelectInput({ className, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select
       {...props}
-      className="mt-1 h-10 w-full rounded-xl border bg-muted/40 px-3 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20"
+      className={cn(
+        'mt-1 h-10 w-full rounded-xl border bg-muted/40 px-3 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20',
+        className
+      )}
     />
   );
 }

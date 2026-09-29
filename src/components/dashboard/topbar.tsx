@@ -58,10 +58,11 @@ export function Topbar({ onNavigate, onMenuClick }: TopbarProps) {
             className="flex h-9 items-center gap-2 rounded-xl border bg-card px-3 text-sm font-medium transition-colors hover:bg-muted"
           >
             <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent text-[11px] font-bold text-primary-foreground">
-              {selectedProject?.favicon ?? (projectsQuery.isError ? '!' : '…')}
+              {selectedProject?.favicon ?? (projectsQuery.isError ? '!' : projectsQuery.data ? '+' : '…')}
             </span>
             <span className="hidden max-w-[140px] truncate sm:block">
-              {selectedProject?.name ?? (projectsQuery.isError ? 'Projects unavailable' : 'Loading…')}
+              {selectedProject?.name ??
+                (projectsQuery.isError ? 'Projects unavailable' : projectsQuery.data ? 'No projects' : 'Loading…')}
             </span>
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </button>
@@ -74,7 +75,7 @@ export function Topbar({ onNavigate, onMenuClick }: TopbarProps) {
               <div className="absolute right-0 top-11 z-20 w-64 rounded-xl border bg-popover p-2 shadow-xl">
                 {projects.map((p) => (
                   <button
-                    key={p.name}
+                    key={p.id ?? p.name}
                     onClick={() => {
                       setSelectedName(p.name);
                       setProjectOpen(false);

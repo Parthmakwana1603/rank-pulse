@@ -1,6 +1,7 @@
-import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import type * as seo from '@/lib/seo-data';
 import { apiGet } from './client';
+import { addSampleProjects, createProject, deleteProject } from './projects';
 
 function useApi<T>(path: string) {
   return useQuery<T, Error>({
@@ -135,3 +136,17 @@ export const useSettingsData = () =>
     integrations: useIntegrations(),
     billing: useBilling(),
   });
+
+// ── Mutations ───────────────────────────────────────────────────────────────
+
+function useProjectMutation<TInput>(mutationFn: (input: TInput) => Promise<void>) {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, TInput>({
+    mutationFn,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['/projects'] }),
+  });
+}
+
+export const useCreateProject = () => useProjectMutation(createProject);
+export const useDeleteProject = () => useProjectMutation(deleteProject);
+export const useAddSampleProjects = () => useProjectMutation<void>(addSampleProjects);

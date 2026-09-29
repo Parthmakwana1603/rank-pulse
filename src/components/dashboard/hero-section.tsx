@@ -1,8 +1,11 @@
 import { Download, RefreshCw, Sparkles } from 'lucide-react';
 import { useModal } from './modals/modal-provider';
+import { useAuth } from '@/lib/auth-context';
 
 export function HeroSection({ projectName }: { projectName: string }) {
   const { open } = useModal();
+  const { user } = useAuth();
+  const firstName = user?.name.split(' ')[0] || 'there';
   return (
     <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-card to-accent/10 p-6 md:p-8">
       <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
@@ -11,7 +14,7 @@ export function HeroSection({ projectName }: { projectName: string }) {
         <div>
           <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border bg-background/60 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
             <Sparkles className="h-3.5 w-3.5 text-accent" />
-            Welcome back, Jamie
+            Welcome back, {firstName}
           </div>
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
             {projectName}

@@ -5,7 +5,9 @@ import { Dashboard } from '@/components/dashboard/dashboard';
 import { LoginScreen } from '@/components/dashboard/login-screen';
 
 function AppContent() {
-  const { user } = useAuth();
+  const { user, initializing } = useAuth();
+  // Restoring a saved session takes a moment; render nothing rather than flashing the login form.
+  if (initializing) return <div className="min-h-screen bg-background" />;
   return user ? (
     <ModalProvider>
       <Dashboard />

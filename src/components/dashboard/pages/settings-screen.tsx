@@ -3,6 +3,7 @@ import { Settings, User, Bell, Plug, CreditCard, Palette, Code, Check, Download 
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '../page-header';
 import { useTheme } from '@/components/theme-provider';
+import { useAuth } from '@/lib/auth-context';
 import { settingsSections } from '@/lib/seo-data';
 import type * as seo from '@/lib/seo-data';
 import { useSettingsData } from '@/lib/api/queries';
@@ -34,6 +35,7 @@ interface SettingsViewProps {
 }
 
 function SettingsView({ notificationSettings, integrations, planInfo }: SettingsViewProps) {
+  const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [activeSection, setActiveSection] = useState('profile');
   const [notifState, setNotifState] = useState(notificationSettings);
@@ -76,7 +78,7 @@ function SettingsView({ notificationSettings, integrations, planInfo }: Settings
               <p className="mt-0.5 text-sm text-muted-foreground">Update your personal information</p>
               <div className="mt-5 flex items-center gap-4">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-chart-4 to-chart-5 text-xl font-bold text-white">
-                  JD
+                  {user?.initials ?? 'JD'}
                 </div>
                 <button className="rounded-xl border bg-card px-4 py-2 text-sm font-medium transition-colors hover:bg-muted">
                   Change Avatar
@@ -84,8 +86,8 @@ function SettingsView({ notificationSettings, integrations, planInfo }: Settings
               </div>
               <div className="mt-5 grid gap-4 md:grid-cols-2">
                 {[
-                  { label: 'Full Name', value: 'Jamie Doe' },
-                  { label: 'Email', value: 'jamie@acme.com' },
+                  { label: 'Full Name', value: user?.name ?? '' },
+                  { label: 'Email', value: user?.email ?? '' },
                   { label: 'Company', value: 'Acme Corporation' },
                   { label: 'Role', value: 'SEO Manager' },
                 ].map((f) => (
