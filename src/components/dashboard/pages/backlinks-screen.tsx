@@ -1,19 +1,22 @@
 import { useState } from 'react';
-import { Link2, Download, TrendingUp, TrendingDown, ArrowUpRight, Filter, Plus } from 'lucide-react';
+import { Link2, Download, ArrowUpRight, Filter, Plus } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '../page-header';
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
 import type { BacklinkRow } from '@/lib/seo-data';
 import { useBacklinksData } from '@/lib/api/queries';
-import { cn, matchesQuery } from '@/lib/utils';
+import { cn, matchesQuery, NO_VALUE } from '@/lib/utils';
+import { EmptyRow, EmptyState } from '../empty-state';
 import { useModal } from '../modals/modal-provider';
 import { QueryFallback } from '../query-fallback';
+import { StatChange } from '../stat-change';
 import { TableFilter, NoMatchesRow } from '../table-filter';
 
 const typeColor: Record<BacklinkRow['type'], string> = {
   Follow: 'bg-success/10 text-success',
   Nofollow: 'bg-muted text-muted-foreground',
   UGC: 'bg-chart-4/10 text-chart-4',
+  Sponsored: 'bg-warning/10 text-warning',
 };
 
 const tooltipStyle = {
@@ -60,7 +63,7 @@ export function BacklinksScreen() {
               Add Backlink
             </button>
             <button
-              onClick={() => open('export-pdf')}
+              onClick={() => open('export-pdf', 'backlink-report')}
               className="flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/30 transition-all hover:bg-primary/90"
             >
               <Download className="h-4 w-4" />
@@ -75,15 +78,7 @@ export function BacklinksScreen() {
           <Card key={s.label} className="rounded-2xl p-5 shadow-sm">
             <p className="text-sm text-muted-foreground">{s.label}</p>
             <p className="mt-1 text-2xl font-bold">{s.value}</p>
-            <span
-              className={cn(
-                'mt-1 inline-flex items-center gap-0.5 text-xs font-semibold',
-                s.change >= 0 ? 'text-success' : 'text-destructive'
-              )}
-            >
-              {s.change >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-              {Math.abs(s.change)}%
-            </span>
+            <StatChange change={s.change} />
           </Card>
         ))}
       </div>
@@ -116,7 +111,8 @@ export function BacklinksScreen() {
         <Card className="rounded-2xl p-5 shadow-sm">
           <h2 className="text-base font-semibold">Follow vs Nofollow</h2>
           <p className="mt-0.5 text-sm text-muted-foreground">Link type distribution</p>
-          <div className="mt-4 flex items-center gap-4">
+          {followNofollow.length === 0 && <EmptyState className="mt-4" title="No backlinks yet" description="Add backlinks to see their link types and anchors." />}
+          <div className={cn('mt-4 flex items-center gap-4', followNofollow.length === 0 && 'hidden')}>
             <div className="h-[180px] w-[160px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -157,6 +153,7 @@ export function BacklinksScreen() {
       <Card className="rounded-2xl p-5 shadow-sm">
         <h2 className="text-base font-semibold">Top Referring Domains</h2>
         <div className="mt-4 space-y-2.5">
+          {topReferringDomains.length === 0 && <EmptyState title="No referring domains yet" />}
           {topReferringDomains.map((d) => (
             <div key={d.domain} className="flex items-center gap-3 rounded-xl border bg-muted/30 p-3 transition-colors hover:bg-muted/60">
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 text-xs font-bold text-primary">
@@ -164,11 +161,13 @@ export function BacklinksScreen() {
               </span>
               <div className="flex-1">
                 <p className="text-sm font-medium">{d.domain}</p>
-                <p className="text-xs text-muted-foreground">DA {d.authority} · {d.backlinks.toLocaleString()} backlinks</p>
+                <p className="text-xs text-muted-foreground">DA {d.authority ?? NO_VALUE} · {d.backlinks.toLocaleString()} backlinks</p>
               </div>
-              <span className={cn('text-xs font-semibold', d.change >= 0 ? 'text-success' : 'text-destructive')}>
-                {d.change >= 0 ? '+' : ''}{d.change}%
-              </span>
+              {d.change !== null && (
+                <span className={cn('text-xs font-semibold', d.change >= 0 ? 'text-success' : 'text-destructive')}>
+                  {d.change >= 0 ? '+' : ''}{d.change}%
+                </span>
+              )}
               <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
             </div>
           ))}
@@ -199,11 +198,17 @@ export function BacklinksScreen() {
               </tr>
             </thead>
             <tbody>
-              {rows.length === 0 && <NoMatchesRow colSpan={7} />}
+              {backlinkTable.length === 0 && (
+                <EmptyRow colSpan={7}>No backlinks recorded yet. Use “Add Backlink” to record links pointing to your site.</EmptyRow>
+              )}
+              {backlinkTable.length > 0 && rows.length === 0 && <NoMatchesRow colSpan={7} />}
               {rows.map((row) => (
-                <tr key={row.source + row.target} className="border-b transition-colors last:border-0 hover:bg-muted/40">
-                  <td className="py-3 pr-4 font-medium">{row.source}</td>
-                  <td className="py-3 pr-4 text-muted-foreground">{row.authority}</td>
+                <tr key={row.id ?? row.source + row.target} className={cn('border-b transition-colors last:border-0 hover:bg-muted/40', row.disavowed && 'opacity-60')}>
+                  <td className="py-3 pr-4 font-medium">
+                    {row.source}
+                    {row.disavowed && <span className="ml-2 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">Disavowed</span>}
+                  </td>
+                  <td className="py-3 pr-4 text-muted-foreground">{row.authority ?? NO_VALUE}</td>
                   <td className="py-3 pr-4 text-muted-foreground">{row.target}</td>
                   <td className="py-3 pr-4 text-muted-foreground">{row.anchor}</td>
                   <td className="py-3 pr-4">
@@ -213,9 +218,13 @@ export function BacklinksScreen() {
                   </td>
                   <td className="py-3 pr-4 text-muted-foreground">{row.firstSeen}</td>
                   <td className="py-3">
-                    <span className={cn('text-xs font-semibold', row.change >= 0 ? 'text-success' : 'text-destructive')}>
-                      {row.change >= 0 ? '+' : ''}{row.change}%
-                    </span>
+                    {row.change === null ? (
+                      <span className="text-xs text-muted-foreground">{NO_VALUE}</span>
+                    ) : (
+                      <span className={cn('text-xs font-semibold', row.change >= 0 ? 'text-success' : 'text-destructive')}>
+                        {row.change >= 0 ? '+' : ''}{row.change}%
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

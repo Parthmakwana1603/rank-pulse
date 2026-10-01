@@ -32,3 +32,23 @@ export function parseCompactNumber(value: string): number | null {
 export function formatCompactNumber(value: number) {
   return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
 }
+
+/** Placeholder for values no data source provides yet. */
+export const NO_VALUE = '—';
+
+/** 18420 → "18,420"; null → "—". */
+export function formatNumber(value: number | null | undefined) {
+  return value === null || value === undefined ? NO_VALUE : value.toLocaleString('en');
+}
+
+/** Positions gained since the previous check (positive = better); null when unknown. */
+export function rankChange(row: { rank: number | null; previousRank: number | null }) {
+  return row.rank === null || row.previousRank === null ? null : row.previousRank - row.rank;
+}
+
+/** 2_400_000 → "2.3 MB". */
+export function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}

@@ -2,7 +2,8 @@ export interface Kpi {
   id: string;
   label: string;
   value: string;
-  change: number;
+  /** Percent change; null when there is nothing to compare with. */
+  change: number | null;
   trend: number[];
   accent: 'primary' | 'accent' | 'warning' | 'destructive' | 'chart-4';
 }
@@ -137,13 +138,15 @@ export const topLandingPages = [
   { page: '/pricing', traffic: 5980, change: 2.1, keywords: 54 },
 ];
 
+/** Ranking metrics are null until a rank-tracking provider supplies them. */
 export interface KeywordRow {
+  id?: string;
   keyword: string;
-  volume: number;
-  difficulty: number;
+  volume: number | null;
+  difficulty: number | null;
   cpc: string;
-  rank: number;
-  previousRank: number;
+  rank: number | null;
+  previousRank: number | null;
   url: string;
 }
 
@@ -161,6 +164,7 @@ export const keywordTable: KeywordRow[] = [
 ];
 
 export interface AuditIssue {
+  id?: string;
   type: 'error' | 'warning' | 'notice';
   title: string;
   count: number;
@@ -179,7 +183,14 @@ export const auditIssues: AuditIssue[] = [
   { type: 'notice', title: 'Thin Content', count: 19 },
 ];
 
-export const backlinkStats = [
+/** A labelled number card with an optional percent change. */
+export interface StatCard {
+  label: string;
+  value: string;
+  change: number | null;
+}
+
+export const backlinkStats: StatCard[] = [
   { label: 'Total Backlinks', value: '52,140', change: 5.3 },
   { label: 'Referring Domains', value: '3,240', change: 8.7 },
   { label: 'New Backlinks', value: '1,840', change: 14.2 },
@@ -200,7 +211,14 @@ export const followNofollow = [
   { name: 'UGC', value: 4, fill: 'hsl(var(--chart-3))' },
 ];
 
-export const topReferringDomains = [
+export interface TopDomain {
+  domain: string;
+  authority: number | null;
+  backlinks: number;
+  change: number | null;
+}
+
+export const topReferringDomains: TopDomain[] = [
   { domain: 'forbes.com', authority: 94, backlinks: 1240, change: 8.4 },
   { domain: 'techcrunch.com', authority: 91, backlinks: 980, change: 12.1 },
   { domain: 'medium.com', authority: 86, backlinks: 742, change: -2.3 },
@@ -209,12 +227,13 @@ export const topReferringDomains = [
 ];
 
 export interface Competitor {
+  id?: string;
   name: string;
   isYou: boolean;
   traffic: string;
   keywords: string;
   backlinks: string;
-  authority: number;
+  authority: number | null;
   trafficValue: string;
 }
 
@@ -245,7 +264,7 @@ export const coreWebVitals = [
 
 export interface Activity {
   id: string;
-  type: 'ranked' | 'lost' | 'audit' | 'backlink' | 'ai';
+  type: 'ranked' | 'lost' | 'audit' | 'backlink' | 'ai' | 'project' | 'keyword' | 'competitor' | 'content' | 'report';
   title: string;
   description: string;
   time: string;
@@ -288,7 +307,15 @@ export const sidebarItems = [
   { label: 'Reports', icon: 'BarChart3' },
 ];
 
-export const notifications = [
+export interface NotificationItem {
+  id: string;
+  title: string;
+  description: string;
+  time: string;
+  read?: boolean;
+}
+
+export const notifications: NotificationItem[] = [
   { id: '1', title: 'Site audit complete', description: '94% health score', time: '12m' },
   { id: '2', title: 'New backlink found', description: 'forbes.com', time: '48m' },
   { id: '3', title: 'Keyword ranking up', description: 'seo audit tool → #3', time: '2h' },
@@ -305,8 +332,10 @@ export interface ProjectItem {
   status: 'active' | 'paused' | 'warning';
   traffic: string;
   keywords: number;
-  health: number;
-  authority: number;
+  /** Latest audit health (0–100); null until an audit has completed. */
+  health: number | null;
+  /** null when no data provider supplies domain authority. */
+  authority: number | null;
   lastAudit: string;
   trend: number[];
 }
@@ -323,7 +352,10 @@ export const projectList: ProjectItem[] = [
 /* ---------- Keyword Rankings screen ---------- */
 
 export interface KeywordFull extends KeywordRow {
-  intent: 'Informational' | 'Commercial' | 'Transactional' | 'Navigational';
+  searchEngine?: 'google' | 'bing' | 'yahoo';
+  device?: 'desktop' | 'mobile';
+  addedAt?: string;
+  intent: 'Informational' | 'Commercial' | 'Transactional' | 'Navigational' | null;
   serp: string;
   trend30: number[];
 }
@@ -343,7 +375,7 @@ export const keywordFullTable: KeywordFull[] = [
   { keyword: 'link building strategies', volume: 8800, difficulty: 64, cpc: '$4.80', rank: 13, previousRank: 13, url: '/blog/link-building', intent: 'Informational', serp: 'Featured snippet', trend30: [13, 14, 13, 14, 13, 13, 13] },
 ];
 
-export const keywordSummary = [
+export const keywordSummary: StatCard[] = [
   { label: 'Tracked Keywords', value: '18,420', change: 6.4 },
   { label: 'Top 10 Rankings', value: '4,720', change: 8.1 },
   { label: 'Top 3 Rankings', value: '1,240', change: 12.3 },
@@ -355,6 +387,8 @@ export const keywordSummary = [
 /* ---------- Site Audit screen ---------- */
 
 export interface AuditCheck {
+  id?: string;
+  status?: 'open' | 'fixed';
   title: string;
   type: 'error' | 'warning' | 'notice';
   count: number;
@@ -388,13 +422,15 @@ export const auditHistory = [
 /* ---------- Backlinks screen ---------- */
 
 export interface BacklinkRow {
+  id?: string;
   source: string;
-  authority: number;
+  authority: number | null;
   target: string;
   anchor: string;
-  type: 'Follow' | 'Nofollow' | 'UGC';
+  type: 'Follow' | 'Nofollow' | 'UGC' | 'Sponsored';
   firstSeen: string;
-  change: number;
+  change: number | null;
+  disavowed?: boolean;
 }
 
 export const backlinkTable: BacklinkRow[] = [
@@ -432,7 +468,13 @@ export const competitorKeywords = [
   { keyword: 'link building', you: 13, compA: 5, compB: 16, compC: 8 },
 ];
 
-export const competitorGap = {
+export interface GapView {
+  unique: number | null;
+  shared: number | null;
+  missed: number | null;
+}
+
+export const competitorGap: GapView = {
   unique: 4820,
   shared: 1240,
   missed: 3180,
@@ -441,12 +483,18 @@ export const competitorGap = {
 /* ---------- Content screen ---------- */
 
 export interface ContentItem {
+  id?: string;
   title: string;
   url: string;
   type: 'Blog' | 'Landing' | 'Tool' | 'Guide';
-  traffic: number;
-  keywords: number;
+  /** null until an analytics integration supplies it. */
+  traffic: number | null;
+  keywords: number | null;
+  /** 0 means no score. */
   score: number;
+  primaryKeyword?: string | null;
+  targetKeywords?: string[];
+  metaDescription?: string | null;
   status: 'Published' | 'Draft' | 'Needs Update' | 'Outdated';
   updated: string;
 }
@@ -464,7 +512,7 @@ export const contentList: ContentItem[] = [
   { title: 'Schema Markup Guide (Draft)', url: '/blog/schema-markup', type: 'Blog', traffic: 0, keywords: 0, score: 0, status: 'Draft', updated: '2d ago' },
 ];
 
-export const contentStats = [
+export const contentStats: StatCard[] = [
   { label: 'Total Pages', value: '4,820', change: 3.1 },
   { label: 'Top Performers', value: '142', change: 8.4 },
   { label: 'Needs Update', value: '38', change: -2.1 },
@@ -513,10 +561,12 @@ export const aiRecommendations = [
 /* ---------- Reports screen ---------- */
 
 export interface ReportItem {
+  id?: string;
   name: string;
   type: 'Weekly' | 'Monthly' | 'Custom' | 'Audit' | 'Competitor';
   date: string;
-  status: 'Ready' | 'Generating' | 'Scheduled';
+  status: 'Ready' | 'Generating' | 'Scheduled' | 'Failed';
+  errorMessage?: string | null;
   size: string;
 }
 
@@ -531,7 +581,15 @@ export const reportList: ReportItem[] = [
   { name: 'Weekly SEO Performance — Jul 21', type: 'Weekly', date: 'Jul 21, 2025', status: 'Ready', size: '2.2 MB' },
 ];
 
-export const reportTemplates = [
+export interface ReportTemplate {
+  key?: string;
+  name: string;
+  description: string;
+  icon: string;
+  defaultSections?: string[];
+}
+
+export const reportTemplates: ReportTemplate[] = [
   { name: 'Executive Summary', description: 'High-level KPIs and traffic overview', icon: 'FileText' },
   { name: 'Technical Audit', description: 'Full site health and Core Web Vitals', icon: 'ShieldCheck' },
   { name: 'Keyword Performance', description: 'Ranking changes and opportunities', icon: 'Search' },
@@ -551,7 +609,16 @@ export const settingsSections = [
   { id: 'api', label: 'API Access', icon: 'Code' },
 ];
 
-export const integrations = [
+export interface Integration {
+  key?: string;
+  name: string;
+  connected: boolean;
+  description: string;
+  /** false when connecting isn't possible yet. */
+  available?: boolean;
+}
+
+export const integrations: Integration[] = [
   { name: 'Google Search Console', connected: true, description: 'Search performance and indexing data' },
   { name: 'Google Analytics 4', connected: true, description: 'Traffic and user behavior metrics' },
   { name: 'Google Looker Studio', connected: false, description: 'Build custom SEO dashboards' },
@@ -560,7 +627,14 @@ export const integrations = [
   { name: 'Ahrefs API', connected: false, description: 'Pull backlink and keyword data' },
 ];
 
-export const notificationSettings = [
+export interface NotificationSetting {
+  key?: string;
+  label: string;
+  email: boolean;
+  push: boolean;
+}
+
+export const notificationSettings: NotificationSetting[] = [
   { label: 'Site audit completed', email: true, push: true },
   { label: 'New backlink found', email: true, push: false },
   { label: 'Keyword ranking changed', email: false, push: true },
@@ -570,12 +644,36 @@ export const notificationSettings = [
   { label: 'Competitor movement detected', email: false, push: false },
 ];
 
-export const planInfo = {
+export interface BillingView {
+  name: string;
+  /** null when no billing provider supplies a price. */
+  price: string | null;
+  cycle: string;
+  renewal: string | null;
+  limits: { label: string; value: string }[];
+  /** false while plan changes and invoices aren't available. */
+  billingAvailable: boolean;
+  invoices: { date: string }[];
+}
+
+export const planInfo: BillingView = {
   name: 'Pro Plan',
   price: '$99',
   cycle: '/month',
-  projects: '10 projects',
-  keywords: '5,000 tracked keywords',
-  audits: 'Weekly site audits',
   renewal: 'Aug 15, 2025',
+  limits: [
+    { label: 'Projects', value: '10 projects' },
+    { label: 'Keywords', value: '5,000 tracked keywords' },
+    { label: 'Audits', value: 'Weekly site audits' },
+  ],
+  billingAvailable: false,
+  invoices: [{ date: 'Jul 15, 2025' }, { date: 'Jun 15, 2025' }, { date: 'May 15, 2025' }],
 };
+
+/* ---------- Reports: scheduled (demo only; no scheduling API exists yet) ---------- */
+
+export const scheduledReports = [
+  { name: 'Weekly SEO Performance', schedule: 'Every Monday at 9:00 AM', recipients: 'team@acme.com', next: 'Aug 4, 2025' },
+  { name: 'Monthly Traffic Summary', schedule: '1st of every month', recipients: 'jamie@acme.com', next: 'Aug 1, 2025' },
+  { name: 'Daily Keyword Alert', schedule: 'Every day at 8:00 AM', recipients: 'seo@acme.com', next: 'Jul 29, 2025' },
+];

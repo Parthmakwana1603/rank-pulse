@@ -12,7 +12,7 @@ const accentMap: Record<Kpi['accent'], string> = {
 };
 
 export function KpiCard({ kpi, index }: { kpi: Kpi; index: number }) {
-  const positive = kpi.change >= 0;
+  const positive = (kpi.change ?? 0) >= 0;
   const color = accentMap[kpi.accent];
   const data = kpi.trend.map((v, i) => ({ i, v }));
 
@@ -27,6 +27,7 @@ export function KpiCard({ kpi, index }: { kpi: Kpi; index: number }) {
       />
       <div className="flex items-start justify-between">
         <p className="text-sm font-medium text-muted-foreground">{kpi.label}</p>
+        {kpi.change !== null && (
         <span
           className={cn(
             'flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold',
@@ -42,9 +43,11 @@ export function KpiCard({ kpi, index }: { kpi: Kpi; index: number }) {
           )}
           {Math.abs(kpi.change)}%
         </span>
+        )}
       </div>
       <p className="mt-2 text-2xl font-bold tracking-tight">{kpi.value}</p>
       <div className="mt-3 h-10">
+        {data.length > 1 && (
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 2, bottom: 2, left: 0, right: 0 }}>
             <defs>
@@ -62,6 +65,7 @@ export function KpiCard({ kpi, index }: { kpi: Kpi; index: number }) {
             />
           </AreaChart>
         </ResponsiveContainer>
+        )}
       </div>
     </div>
   );

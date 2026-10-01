@@ -3,7 +3,8 @@ import { Card } from '@/components/ui/card';
 import { SectionHeader } from './section-header';
 import type { AuditIssue } from '@/lib/seo-data';
 import type { DashboardSummary } from '@/lib/api/queries';
-import { cn } from '@/lib/utils';
+import { cn, NO_VALUE } from '@/lib/utils';
+import { EmptyState } from './empty-state';
 
 const typeConfig: Record<
   AuditIssue['type'],
@@ -29,7 +30,10 @@ const typeConfig: Record<
   },
 };
 
-export function SiteAuditSection({ auditIssues }: Pick<DashboardSummary, 'auditIssues'>) {
+export function SiteAuditSection({
+  auditIssues,
+  healthLabel,
+}: Pick<DashboardSummary, 'auditIssues'> & { /** e.g. "94%"; omitted or "—" before the first audit. */ healthLabel?: string }) {
   const errors = auditIssues.filter((i) => i.type === 'error');
   const warnings = auditIssues.filter((i) => i.type === 'warning');
   const notices = auditIssues.filter((i) => i.type === 'notice');
@@ -46,14 +50,24 @@ export function SiteAuditSection({ auditIssues }: Pick<DashboardSummary, 'auditI
         title="Site Audit"
         description="Technical issues detected on your site"
         action={
+          healthLabel && healthLabel !== NO_VALUE ? (
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 rounded-lg bg-success/10 px-2.5 py-1.5 text-xs font-semibold text-success">
               <span className="h-2 w-2 rounded-full bg-success" />
-              94% Healthy
+              {healthLabel} Healthy
             </div>
           </div>
+          ) : undefined
         }
       />
+      {auditIssues.length === 0 && (
+        <EmptyState
+          className="mt-4"
+          title={healthLabel && healthLabel !== NO_VALUE ? 'No open issues' : 'No site audit yet'}
+          description={healthLabel && healthLabel !== NO_VALUE ? 'The latest audit found nothing left to fix.' : 'Run a site audit to find technical SEO issues.'}
+        />
+      )}
+      {auditIssues.length > 0 && (
       <div className="mt-4 grid gap-4 md:grid-cols-3">
         {groups.map((group) => {
           const config = typeConfig[group.type];
@@ -101,6 +115,7 @@ export function SiteAuditSection({ auditIssues }: Pick<DashboardSummary, 'auditI
           );
         })}
       </div>
+      )}
     </Card>
   );
 }

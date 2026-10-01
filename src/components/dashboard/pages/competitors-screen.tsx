@@ -3,7 +3,10 @@ import { Card } from '@/components/ui/card';
 import { PageHeader } from '../page-header';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
 import { useCompetitorsData } from '@/lib/api/queries';
-import { cn } from '@/lib/utils';
+import { cn, formatNumber, NO_VALUE } from '@/lib/utils';
+import { EmptyState } from '../empty-state';
+
+const seriesColors = ['hsl(var(--primary))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))', 'hsl(var(--chart-3))', 'hsl(var(--chart-2))'];
 import { useModal } from '../modals/modal-provider';
 import { QueryFallback } from '../query-fallback';
 
@@ -42,7 +45,7 @@ export function CompetitorsScreen() {
               Add Competitor
             </button>
             <button
-              onClick={() => open('export-pdf')}
+              onClick={() => open('export-pdf', 'competitor-benchmark')}
               className="flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/30 transition-all hover:bg-primary/90"
             >
               <Download className="h-4 w-4" />
@@ -56,7 +59,7 @@ export function CompetitorsScreen() {
         <div className="grid min-w-[760px] grid-cols-4 gap-4">
           {competitors.map((c) => (
             <Card
-              key={c.name}
+              key={c.id ?? c.name}
               className={cn(
                 'flex flex-col rounded-2xl p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md',
                 c.isYou && 'border-primary/40 bg-primary/5 ring-1 ring-primary/20'
@@ -80,12 +83,12 @@ export function CompetitorsScreen() {
               <div className="mt-4 mb-4">
                 <div className="flex items-end justify-between">
                   <span className="text-xs text-muted-foreground">Authority Score</span>
-                  <span className="text-2xl font-bold">{c.authority}</span>
+                  <span className="text-2xl font-bold">{c.authority ?? NO_VALUE}</span>
                 </div>
                 <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-muted">
                   <div
                     className={cn('h-full rounded-full', c.isYou ? 'bg-gradient-to-r from-primary to-accent' : 'bg-gradient-to-r from-chart-4 to-chart-5')}
-                    style={{ width: `${c.authority}%` }}
+                    style={{ width: `${c.authority ?? 0}%` }}
                   />
                 </div>
               </div>
@@ -107,21 +110,28 @@ export function CompetitorsScreen() {
         <Card className="rounded-2xl p-5 shadow-sm lg:col-span-2">
           <h2 className="text-base font-semibold">Keyword Position Comparison</h2>
           <p className="mt-0.5 text-sm text-muted-foreground">SERP rankings across shared keywords</p>
+          {competitorKeywords.rows.length === 0 ? (
+            <EmptyState
+              className="mt-4 h-[300px]"
+              title={competitors.length <= 1 ? 'Add a competitor to compare' : 'No ranking data yet'}
+              description="Comparing positions per keyword needs rank data from a rank-tracking provider, which isn't connected yet."
+            />
+          ) : (
           <div className="mt-4 h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={competitorKeywords} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={competitorKeywords.rows} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                 <XAxis dataKey="keyword" tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} interval={0} angle={-25} textAnchor="end" height={60} />
                 <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }} />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
-                <Bar dataKey="you" name="You" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} barSize={14} />
-                <Bar dataKey="compA" name="Competitor A" fill="hsl(var(--chart-4))" radius={[3, 3, 0, 0]} barSize={14} />
-                <Bar dataKey="compB" name="Competitor B" fill="hsl(var(--chart-5))" radius={[3, 3, 0, 0]} barSize={14} />
-                <Bar dataKey="compC" name="Competitor C" fill="hsl(var(--chart-3))" radius={[3, 3, 0, 0]} barSize={14} />
+                {competitorKeywords.series.map((s, i) => (
+                  <Bar key={s.key} dataKey={s.key} name={s.name} fill={seriesColors[i % seriesColors.length]} radius={[3, 3, 0, 0]} barSize={14} />
+                ))}
               </BarChart>
             </ResponsiveContainer>
           </div>
+          )}
         </Card>
 
         <Card className="rounded-2xl p-5 shadow-sm">
@@ -133,7 +143,7 @@ export function CompetitorsScreen() {
                 <Target className="h-4 w-4 text-primary" />
                 <p className="text-sm font-medium">Unique to You</p>
               </div>
-              <p className="mt-1 text-2xl font-bold text-primary">{competitorGap.unique.toLocaleString()}</p>
+              <p className="mt-1 text-2xl font-bold text-primary">{formatNumber(competitorGap.unique)}</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Keywords only you rank for</p>
             </div>
             <div className="rounded-xl border bg-muted/30 p-4">
@@ -141,7 +151,7 @@ export function CompetitorsScreen() {
                 <TrendingUp className="h-4 w-4 text-accent" />
                 <p className="text-sm font-medium">Shared</p>
               </div>
-              <p className="mt-1 text-2xl font-bold text-accent">{competitorGap.shared.toLocaleString()}</p>
+              <p className="mt-1 text-2xl font-bold text-accent">{formatNumber(competitorGap.shared)}</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Keywords all competitors rank for</p>
             </div>
             <div className="rounded-xl border bg-muted/30 p-4">
@@ -149,7 +159,7 @@ export function CompetitorsScreen() {
                 <Crown className="h-4 w-4 text-warning" />
                 <p className="text-sm font-medium">Missed Opportunities</p>
               </div>
-              <p className="mt-1 text-2xl font-bold text-warning">{competitorGap.missed.toLocaleString()}</p>
+              <p className="mt-1 text-2xl font-bold text-warning">{formatNumber(competitorGap.missed)}</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Keywords competitors rank for, you don't</p>
             </div>
           </div>

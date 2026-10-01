@@ -1,8 +1,13 @@
-import { ModalFooter, CancelButton, PrimaryButton } from './modal-shell';
+import { ModalFooter, CancelButton, PrimaryButton, FormAlert } from './modal-shell';
+import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { TrendingUp, TrendingDown, Activity, Link2, Search, ShieldCheck, Trash2, Loader2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, Link2, Search, ShieldCheck, Trash2, Loader2, Pause, Play } from 'lucide-react';
 import { Area, AreaChart, ResponsiveContainer, Tooltip } from 'recharts';
-import { useDeleteProject, useProjects } from '@/lib/api/queries';
+import { useDeleteProject, useProjects, useUpdateProject } from '@/lib/api/queries';
+import { dataMode } from '@/lib/api/client';
+import { useSelectedProject } from '@/lib/project-context';
+import { projectKey } from '@/lib/project-scope';
+import { NO_VALUE } from '@/lib/utils';
 import { QueryFallback } from '../query-fallback';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -16,6 +21,9 @@ const tooltipStyle = {
 export function ProjectDetailModal({ onClose, project }: { onClose: () => void; project: string }) {
   const projectsQuery = useProjects();
   const deleteProject = useDeleteProject();
+  const updateProject = useUpdateProject();
+  const { setProjectId } = useSelectedProject();
+  const navigate = useNavigate();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   if (!projectsQuery.data) return <QueryFallback query={projectsQuery} skeleton={<Skeleton className="h-48 rounded-xl" />} />;
   const projectList = projectsQuery.data;
@@ -46,8 +54,8 @@ export function ProjectDetailModal({ onClose, project }: { onClose: () => void; 
   const stats = [
     { icon: Activity, label: 'Organic Traffic', value: data.traffic, color: 'text-primary' },
     { icon: Search, label: 'Keywords', value: data.keywords.toLocaleString(), color: 'text-accent' },
-    { icon: ShieldCheck, label: 'Site Health', value: `${data.health}%`, color: 'text-success' },
-    { icon: Link2, label: 'Authority', value: String(data.authority), color: 'text-chart-4' },
+    { icon: ShieldCheck, label: 'Site Health', value: data.health === null ? NO_VALUE : `${data.health}%`, color: 'text-success' },
+    { icon: Link2, label: 'Authority', value: data.authority === null ? NO_VALUE : String(data.authority), color: 'text-chart-4' },
   ];
 
   return (
@@ -105,6 +113,7 @@ export function ProjectDetailModal({ onClose, project }: { onClose: () => void; 
         </div>
       )}
 
+      <FormAlert>{updateProject.error?.message}</FormAlert>
       {deleteProject.error && (
         <div role="alert" className="rounded-xl border bg-destructive/5 px-3 py-2.5 text-sm text-destructive">
           {deleteProject.error.message}
@@ -122,7 +131,26 @@ export function ProjectDetailModal({ onClose, project }: { onClose: () => void; 
           {confirmingDelete ? 'Click again to delete' : 'Delete project'}
         </button>
         <CancelButton onClose={onClose} />
-        <PrimaryButton onClick={onClose}>View Full Report</PrimaryButton>
+        {dataMode === 'api' && data.id && data.status !== 'warning' && (
+          <button
+            type="button"
+            onClick={() => updateProject.mutate({ id: data.id!, status: data.status === 'paused' ? 'active' : 'paused' })}
+            disabled={updateProject.isPending}
+            className="flex h-10 items-center justify-center gap-2 rounded-xl border bg-card px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-60"
+          >
+            {updateProject.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : data.status === 'paused' ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+            {data.status === 'paused' ? 'Resume' : 'Pause'}
+          </button>
+        )}
+        <PrimaryButton
+          onClick={() => {
+            setProjectId(projectKey(data));
+            onClose();
+            navigate('/');
+          }}
+        >
+          View Dashboard
+        </PrimaryButton>
       </ModalFooter>
     </div>
   );

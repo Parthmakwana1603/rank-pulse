@@ -14,7 +14,10 @@ import {
 } from 'lucide-react';
 import { useTheme } from '@/components/theme-provider';
 import { useAuth } from '@/lib/auth-context';
-import { useNotifications, useProjects } from '@/lib/api/queries';
+import { useMarkNotificationsRead, useNotifications } from '@/lib/api/queries';
+import { dataMode } from '@/lib/api/client';
+import { useSelectedProject } from '@/lib/project-context';
+import { projectKey } from '@/lib/project-scope';
 
 interface TopbarProps {
   onNavigate: (label: string) => void;
@@ -25,12 +28,18 @@ export function Topbar({ onNavigate, onMenuClick }: TopbarProps) {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const [projectOpen, setProjectOpen] = useState(false);
-  const projectsQuery = useProjects();
+  const { project: selectedProject, setProjectId, projectsQuery } = useSelectedProject();
   const projects = projectsQuery.data ?? [];
-  const notifications = useNotifications().data ?? [];
-  const [selectedName, setSelectedName] = useState<string | null>(null);
-  const selectedProject = projects.find((p) => p.name === selectedName) ?? projects[0];
+  const notificationsQuery = useNotifications();
+  const notifications = notificationsQuery.data?.items ?? [];
+  const unreadCount = notificationsQuery.data?.unreadCount ?? 0;
+  const markRead = useMarkNotificationsRead();
   const [notifOpen, setNotifOpen] = useState(false);
+  const toggleNotifications = () => {
+    // Opening the panel marks everything as read.
+    if (!notifOpen && unreadCount > 0 && dataMode === 'api') markRead.mutate();
+    setNotifOpen((v) => !v);
+  };
   const [userOpen, setUserOpen] = useState(false);
 
   return (
@@ -75,9 +84,9 @@ export function Topbar({ onNavigate, onMenuClick }: TopbarProps) {
               <div className="absolute right-0 top-11 z-20 w-64 rounded-xl border bg-popover p-2 shadow-xl">
                 {projects.map((p) => (
                   <button
-                    key={p.id ?? p.name}
+                    key={projectKey(p)}
                     onClick={() => {
-                      setSelectedName(p.name);
+                      setProjectId(projectKey(p));
                       setProjectOpen(false);
                     }}
                     className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors hover:bg-muted"
@@ -86,7 +95,7 @@ export function Topbar({ onNavigate, onMenuClick }: TopbarProps) {
                       {p.favicon}
                     </span>
                     <span className="flex-1 text-left">{p.name}</span>
-                    {selectedProject?.name === p.name && (
+                    {selectedProject && projectKey(selectedProject) === projectKey(p) && (
                       <Check className="h-4 w-4 text-primary" />
                     )}
                   </button>
@@ -104,11 +113,12 @@ export function Topbar({ onNavigate, onMenuClick }: TopbarProps) {
 
         <div className="relative">
           <button
-            onClick={() => setNotifOpen((v) => !v)}
+            onClick={toggleNotifications}
+            aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : 'Notifications'}
             className="relative flex h-9 w-9 items-center justify-center rounded-xl border bg-card transition-colors hover:bg-muted"
           >
             <Bell className="h-[18px] w-[18px] text-muted-foreground" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-card" />
+            {unreadCount > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-card" />}
           </button>
           {notifOpen && (
             <>
@@ -120,12 +130,17 @@ export function Topbar({ onNavigate, onMenuClick }: TopbarProps) {
                 <p className="px-2.5 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Notifications
                 </p>
+                {notifications.length === 0 && (
+                  <p className="px-2.5 py-4 text-center text-sm text-muted-foreground">
+                    {notificationsQuery.isError ? 'Notifications are unavailable right now.' : 'No notifications yet.'}
+                  </p>
+                )}
                 {notifications.map((n) => (
                   <div
                     key={n.id}
                     className="flex gap-3 rounded-lg px-2.5 py-2.5 transition-colors hover:bg-muted"
                   >
-                    <div className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                    <div className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${n.read ? 'bg-muted' : 'bg-primary'}`} />
                     <div className="flex-1">
                       <p className="text-sm font-medium">{n.title}</p>
                       <p className="text-xs text-muted-foreground">

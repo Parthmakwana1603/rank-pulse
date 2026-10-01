@@ -38,7 +38,7 @@ const titles: Record<ModalName, { title: string; description: string; size: stri
   'audit-issue': { title: 'Issue Details', description: 'Affected pages and fix suggestions', size: 'max-w-2xl' },
   'add-backlink': { title: 'Add Backlink', description: 'Manually add or disavow a backlink', size: 'max-w-lg' },
   'add-competitor': { title: 'Add Competitor', description: 'Track a new competitor domain', size: 'max-w-lg' },
-  'new-content': { title: 'Create Content', description: 'Add a new page or article to track', size: 'max-w-lg' },
+  'new-content': { title: 'Content', description: 'Add or edit a page or article to track', size: 'max-w-lg' },
   'content-detail': { title: 'Content Details', description: 'Performance and optimization tips', size: 'max-w-2xl' },
   'generate-report': { title: 'Generate Report', description: 'Choose a template and date range', size: 'max-w-lg' },
   'export-pdf': { title: 'Export as PDF', description: 'Select sections to include', size: 'max-w-md' },
@@ -116,6 +116,16 @@ export function FieldError({ id, children }: { id: string; children?: React.Reac
     <p id={id} className="mt-1 text-xs text-destructive">
       {children}
     </p>
+  );
+}
+
+/** Form-level error message (e.g. from the server). Renders nothing when empty. */
+export function FormAlert({ children }: { children?: React.ReactNode }) {
+  if (!children) return null;
+  return (
+    <div role="alert" className="rounded-xl border bg-destructive/5 px-3 py-2.5 text-sm text-destructive">
+      {children}
+    </div>
   );
 }
 

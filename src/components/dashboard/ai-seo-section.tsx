@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { SectionHeader } from './section-header';
 import type { DashboardSummary } from '@/lib/api/queries';
 import { cn } from '@/lib/utils';
+import { EmptyState } from './empty-state';
 
 const iconMap = {
   'AI Visibility Score': Brain,
@@ -34,6 +35,13 @@ export function AiSeoSection({ aiSeoMetrics }: Pick<DashboardSummary, 'aiSeoMetr
           </span>
         }
       />
+      {aiSeoMetrics.length === 0 && (
+        <EmptyState
+          className="relative mt-4"
+          title="AI visibility tracking isn't connected"
+          description="Measuring mentions in ChatGPT, Perplexity and other AI search engines needs a data provider, which hasn't been set up yet."
+        />
+      )}
       <div className="relative mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
         {aiSeoMetrics.map((m) => {
           const Icon = iconMap[m.label as keyof typeof iconMap] ?? Sparkles;

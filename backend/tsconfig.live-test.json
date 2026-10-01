@@ -1,0 +1,14 @@
+{
+  // The live integration test also imports frontend code (../src/lib/api/mappers.ts), which uses the
+  // frontend's module settings (bundler resolution, "@/" alias, DOM types), so it is checked here.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node", "vite/client"],
+    "paths": { "@/*": ["./../src/*"] },
+    "noEmit": true
+  },
+  "include": ["test/integration.supabase.test.ts", "src/types"]
+}
