@@ -1,37 +1,48 @@
 import { ModalFooter, CancelButton, PrimaryButton } from './modal-shell';
-import { TrendingUp, ExternalLink, Lightbulb } from 'lucide-react';
+import { TrendingUp, Lightbulb } from 'lucide-react';
 import { useContent } from '@/lib/api/queries';
 import { QueryFallback } from '../query-fallback';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatNumber, NO_VALUE } from '@/lib/utils';
+import { useModal } from './modal-context';
 
+// General on-page advice (not measured for this page).
+const tips = [
+  'Add more internal links from high-authority pages',
+  'Update the content freshness date to improve crawl frequency',
+  'Add FAQ schema to capture more SERP features',
+  'Improve title tag CTR with a number or power word',
+];
+
+/** `title` is the content item's id (or its title for older links). */
 export function ContentDetailModal({ onClose, title }: { onClose: () => void; title: string }) {
+  const { open } = useModal();
   const contentQuery = useContent();
   if (!contentQuery.data) return <QueryFallback query={contentQuery} skeleton={<Skeleton className="h-48 rounded-xl" />} />;
-  const contentList = contentQuery.data;
-  const item = contentList.find((c) => c.title === title) ?? contentList[0];
-
-  const tips = [
-    'Add more internal links from high-authority pages',
-    'Update the content freshness date to improve crawl frequency',
-    'Add FAQ schema to capture more SERP features',
-    'Improve title tag CTR with a number or power word',
-  ];
+  const item = contentQuery.data.find((c) => c.id === title || c.title === title);
+  if (!item) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">This content no longer exists.</p>
+        <ModalFooter>
+          <CancelButton onClose={onClose} />
+        </ModalFooter>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
       <div>
         <p className="text-base font-semibold">{item.title}</p>
-        <a href="#" className="mt-0.5 flex items-center gap-1 text-xs text-primary hover:underline">
-          <ExternalLink className="h-3 w-3" />
-          {item.url}
-        </a>
+        <p className="mt-0.5 text-xs text-muted-foreground">{item.url}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: 'Traffic', value: item.traffic.toLocaleString() },
-          { label: 'Keywords', value: String(item.keywords) },
-          { label: 'Content Score', value: item.score > 0 ? String(item.score) : '—' },
+          { label: 'Traffic', value: formatNumber(item.traffic) },
+          { label: 'Keywords', value: formatNumber(item.keywords) },
+          { label: 'Content Score', value: item.score > 0 ? String(item.score) : NO_VALUE },
           { label: 'Type', value: item.type },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border bg-muted/30 p-3">
@@ -41,12 +52,25 @@ export function ContentDetailModal({ onClose, title }: { onClose: () => void; ti
         ))}
       </div>
 
-      <div className="flex items-center gap-2 rounded-xl border bg-muted/30 p-3 text-sm">
-        <TrendingUp className="h-4 w-4 text-success" />
-        <span className="text-muted-foreground">
-          This page drives <span className="font-semibold text-foreground">{item.traffic.toLocaleString()}</span> monthly visits from <span className="font-semibold text-foreground">{item.keywords}</span> keywords.
-        </span>
-      </div>
+      {item.traffic !== null && item.keywords !== null ? (
+        <div className="flex items-center gap-2 rounded-xl border bg-muted/30 p-3 text-sm">
+          <TrendingUp className="h-4 w-4 text-success" />
+          <span className="text-muted-foreground">
+            This page drives <span className="font-semibold text-foreground">{item.traffic.toLocaleString()}</span> monthly visits from <span className="font-semibold text-foreground">{item.keywords}</span> keywords.
+          </span>
+        </div>
+      ) : (
+        <div className="rounded-xl border bg-muted/30 p-3 text-sm text-muted-foreground">
+          {item.primaryKeyword && (
+            <p>
+              Primary keyword: <span className="font-medium text-foreground">{item.primaryKeyword}</span>
+            </p>
+          )}
+          {item.targetKeywords && item.targetKeywords.length > 0 && <p className="mt-1">Target keywords: {item.targetKeywords.join(', ')}</p>}
+          {item.metaDescription && <p className="mt-1">Meta description: {item.metaDescription}</p>}
+          <p className="mt-1 text-xs">Traffic and ranking keywords appear once an analytics integration is connected.</p>
+        </div>
+      )}
 
       <div className="rounded-xl border bg-muted/30 p-4">
         <div className="flex items-center gap-2">
@@ -65,7 +89,7 @@ export function ContentDetailModal({ onClose, title }: { onClose: () => void; ti
 
       <ModalFooter>
         <CancelButton onClose={onClose} />
-        <PrimaryButton onClick={onClose}>Edit Content</PrimaryButton>
+        <PrimaryButton onClick={() => (item.id ? open('new-content', item.id) : onClose())}>Edit Content</PrimaryButton>
       </ModalFooter>
     </div>
   );

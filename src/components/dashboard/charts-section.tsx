@@ -21,7 +21,8 @@ import {
 import { Card } from '@/components/ui/card';
 import { SectionHeader } from './section-header';
 import type { DashboardSummary } from '@/lib/api/queries';
-import { TrendingUp, TrendingDown, ArrowUpRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, ArrowUpRight, BarChart3 } from 'lucide-react';
+import { EmptyState } from './empty-state';
 import { cn } from '@/lib/utils';
 
 const tooltipStyle = {
@@ -71,6 +72,19 @@ export function ChartsSection({
   monthlyGrowth,
   topLandingPages,
 }: ChartsSectionProps) {
+  // Traffic, rank distribution and landing-page data come from analytics / rank-tracking
+  // integrations. Until one is connected there is nothing to chart.
+  if (trafficTrend.length === 0 && keywordDistribution.length === 0 && topLandingPages.length === 0) {
+    return (
+      <ChartCard title="Traffic & Visibility" description="Organic traffic, channels, countries, devices and landing pages">
+        <EmptyState
+          icon={<BarChart3 className="h-5 w-5" />}
+          title="No traffic data connected"
+          description="Traffic and search-visibility charts need Google Analytics, Search Console or a rank-tracking provider. These integrations aren't available yet, so nothing is shown instead of sample numbers."
+        />
+      </ChartCard>
+    );
+  }
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
       <ChartCard

@@ -1,10 +1,12 @@
-import { ShieldCheck, AlertCircle, AlertTriangle, Info, RefreshCw, Download, ChevronRight } from 'lucide-react';
+import { ShieldCheck, AlertCircle, AlertTriangle, Info, RefreshCw, Download, ChevronRight, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '../page-header';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
 import type { AuditCheck } from '@/lib/seo-data';
 import { useSiteAuditData } from '@/lib/api/queries';
-import { cn } from '@/lib/utils';
+import { cn, NO_VALUE } from '@/lib/utils';
+import { relativeTime } from '@/lib/api/mappers';
+import { EmptyState } from '../empty-state';
 import { useModal } from '../modals/modal-provider';
 import { QueryFallback } from '../query-fallback';
 
@@ -25,7 +27,8 @@ export function SiteAuditScreen() {
   const { open } = useModal();
   const screenQuery = useSiteAuditData();
   if (!screenQuery.data) return <QueryFallback query={screenQuery} />;
-  const { checks: auditChecks, history: auditHistory } = screenQuery.data;
+  const { checks: auditChecks, history: auditHistory, overview } = screenQuery.data;
+  const neverAudited = overview.health === null && auditChecks.length === 0;
   const errors = auditChecks.filter((c) => c.type === 'error');
   const warnings = auditChecks.filter((c) => c.type === 'warning');
   const notices = auditChecks.filter((c) => c.type === 'notice');
@@ -55,7 +58,7 @@ export function SiteAuditScreen() {
               Re-run Audit
             </button>
             <button
-              onClick={() => open('export-pdf')}
+              onClick={() => open('export-pdf', 'technical-audit')}
               className="flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/30 transition-all hover:bg-primary/90"
             >
               <Download className="h-4 w-4" />
@@ -65,7 +68,39 @@ export function SiteAuditScreen() {
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+      {overview.runningId && (
+        <Card className="flex items-center gap-3 rounded-2xl border-primary/40 bg-primary/5 p-4 shadow-sm">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <p className="flex-1 text-sm">An audit is running. Results appear here when it finishes.</p>
+          <button onClick={() => open('run-audit')} className="rounded-lg border bg-card px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted">
+            View progress
+          </button>
+        </Card>
+      )}
+      {overview.lastError && !overview.runningId && (
+        <Card role="alert" className="rounded-2xl border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive shadow-sm">
+          The last audit failed: {overview.lastError}
+        </Card>
+      )}
+      {neverAudited && !overview.runningId && (
+        <EmptyState
+          className="bg-card p-10"
+          icon={<ShieldCheck className="h-5 w-5" />}
+          title="No site audit yet"
+          description="Crawl your website to find broken links, missing titles and descriptions, HTTPS problems, slow and thin pages, and more."
+          action={
+            <button
+              onClick={() => open('run-audit')}
+              className="mt-2 flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/30 transition-all hover:bg-primary/90"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Run First Audit
+            </button>
+          }
+        />
+      )}
+
+      <div className={cn('grid grid-cols-1 gap-4 md:grid-cols-4', neverAudited && 'hidden')}>
         <Card className="rounded-2xl p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">Site Health</p>
@@ -73,8 +108,14 @@ export function SiteAuditScreen() {
               <ShieldCheck className="h-5 w-5 text-success" />
             </span>
           </div>
-          <p className="mt-2 text-3xl font-bold text-success">94%</p>
-          <p className="mt-1 text-xs text-muted-foreground">+1.8% from last audit</p>
+          <p className="mt-2 text-3xl font-bold text-success">{overview.health === null ? NO_VALUE : `${overview.health}%`}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {overview.change !== null
+              ? `${overview.change >= 0 ? '+' : ''}${overview.change} points from last audit`
+              : overview.lastAuditAt
+                ? `Audited ${relativeTime(overview.lastAuditAt)}`
+                : 'Pages without errors'}
+          </p>
         </Card>
         {summary.map((s) => {
           const cfg = typeConfig[s.type];
@@ -96,7 +137,7 @@ export function SiteAuditScreen() {
         })}
       </div>
 
-      <Card className="rounded-2xl p-5 shadow-sm">
+      <Card className={cn('rounded-2xl p-5 shadow-sm', neverAudited && 'hidden')}>
         <h2 className="text-base font-semibold">Audit History</h2>
         <p className="mt-0.5 text-sm text-muted-foreground">Issue counts over the last 7 audits</p>
         <div className="mt-4 h-[260px]">
@@ -134,8 +175,8 @@ export function SiteAuditScreen() {
               <div className="mt-4 space-y-2">
                 {items.map((item) => (
                   <button
-                    key={item.title}
-                    onClick={() => open('audit-issue', item.title)}
+                    key={item.id ?? item.title}
+                    onClick={() => item.id && open('audit-issue', item.id)}
                     className="group flex w-full items-center gap-3 rounded-xl border bg-muted/30 p-3 text-left transition-colors hover:bg-muted/60"
                   >
                     <div className="flex-1">

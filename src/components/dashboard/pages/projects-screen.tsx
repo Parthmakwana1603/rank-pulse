@@ -1,11 +1,10 @@
-import { FolderKanban, Plus, MoreHorizontal, TrendingUp, TrendingDown, Minus, Sparkles, Loader2 } from 'lucide-react';
+import { FolderKanban, Plus, MoreHorizontal, TrendingUp, TrendingDown, Minus, Upload } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '../page-header';
 import { Area, AreaChart, ResponsiveContainer } from 'recharts';
 import type { ProjectItem } from '@/lib/seo-data';
-import { useAddSampleProjects, useProjects } from '@/lib/api/queries';
-import { useAuth } from '@/lib/auth-context';
-import { cn, formatCompactNumber, parseCompactNumber } from '@/lib/utils';
+import { useProjects } from '@/lib/api/queries';
+import { cn, formatCompactNumber, NO_VALUE, parseCompactNumber } from '@/lib/utils';
 import { useModal } from '../modals/modal-provider';
 import { QueryFallback } from '../query-fallback';
 
@@ -17,23 +16,21 @@ const statusConfig: Record<ProjectItem['status'], { label: string; color: string
 
 function summarize(projects: ProjectItem[]) {
   const traffic = projects.map((p) => parseCompactNumber(p.traffic)).filter((n): n is number => n !== null);
-  const audited = projects.filter((p) => p.health > 0);
+  const audited = projects.map((p) => p.health).filter((h): h is number => h !== null);
   return [
     { label: 'Total Projects', value: String(projects.length) },
     { label: 'Active', value: String(projects.filter((p) => p.status === 'active').length) },
     { label: 'Total Traffic', value: traffic.length ? formatCompactNumber(traffic.reduce((a, b) => a + b, 0)) : '—' },
     {
       label: 'Avg. Health',
-      value: audited.length ? `${Math.round(audited.reduce((a, p) => a + p.health, 0) / audited.length)}%` : '—',
+      value: audited.length ? `${Math.round(audited.reduce((a, h) => a + h, 0) / audited.length)}%` : NO_VALUE,
     },
   ];
 }
 
 export function ProjectsScreen() {
   const { open } = useModal();
-  const { mode } = useAuth();
   const projectsQuery = useProjects();
-  const addSamples = useAddSampleProjects();
   if (!projectsQuery.data) return <QueryFallback query={projectsQuery} />;
   const projectList = projectsQuery.data;
   return (
@@ -78,7 +75,7 @@ export function ProjectsScreen() {
           <div>
             <p className="font-semibold">No projects yet</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Add the website you want to track, or load sample projects to explore the dashboard.
+              Add the website you want to track, or import several from a CSV file.
             </p>
           </div>
           <div className="flex flex-wrap justify-center gap-2.5">
@@ -89,22 +86,14 @@ export function ProjectsScreen() {
               <Plus className="h-4 w-4" />
               New Project
             </button>
-            {mode === 'supabase' && (
-              <button
-                onClick={() => addSamples.mutate()}
-                disabled={addSamples.isPending}
-                className="flex h-10 items-center gap-2 rounded-xl border bg-card px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-60"
-              >
-                {addSamples.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                Add sample projects
-              </button>
-            )}
+            <button
+              onClick={() => open('import-project')}
+              className="flex h-10 items-center gap-2 rounded-xl border bg-card px-4 text-sm font-medium transition-colors hover:bg-muted"
+            >
+              <Upload className="h-4 w-4" />
+              Import CSV
+            </button>
           </div>
-          {addSamples.error && (
-            <p role="alert" className="text-sm text-destructive">
-              {addSamples.error.message}
-            </p>
-          )}
         </Card>
       )}
 
@@ -183,7 +172,7 @@ export function ProjectsScreen() {
                 </div>
                 <div>
                   <p className="text-[11px] text-muted-foreground">Health</p>
-                  <p className="text-sm font-semibold">{p.health}%</p>
+                  <p className="text-sm font-semibold">{p.health === null ? NO_VALUE : `${p.health}%`}</p>
                 </div>
               </div>
 
@@ -196,7 +185,7 @@ export function ProjectsScreen() {
                   )}
                 >
                   <TrendIcon className="h-3 w-3" />
-                  DA {p.authority}
+                  DA {p.authority ?? NO_VALUE}
                 </span>
               </div>
             </Card>

@@ -7,7 +7,7 @@ const inputClass =
   'h-11 w-full rounded-xl border bg-muted/40 pl-10 pr-3 text-sm outline-none transition-all focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20';
 
 export function LoginScreen() {
-  const { login, signUp, mode: authMode } = useAuth();
+  const { login, signUp, requestPasswordReset, mode: authMode } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const isDemo = authMode === 'demo';
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
@@ -40,6 +40,16 @@ export function LoginScreen() {
       setMode('signin');
       setPassword('');
     }
+  };
+
+  const handleForgotPassword = async () => {
+    setError('');
+    setNotice('');
+    setLoading(true);
+    const result = await requestPasswordReset(email);
+    setLoading(false);
+    if (!result.ok) setError(result.error);
+    else if (result.message) setNotice(result.message);
   };
 
   return (
@@ -123,6 +133,16 @@ export function LoginScreen() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {!isSignUp && !isDemo && (
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={loading}
+                  className="mt-1.5 text-xs font-medium text-primary transition-opacity hover:opacity-80 disabled:opacity-60"
+                >
+                  Forgot password? Email me a reset link
+                </button>
+              )}
             </div>
 
             {error && (
@@ -165,6 +185,65 @@ export function LoginScreen() {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** Shown after the user opens a password-reset link from their email. */
+export function SetPasswordScreen() {
+  const { updatePassword, logout } = useAuth();
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    const result = await updatePassword(password);
+    setLoading(false);
+    if (!result.ok) setError(result.error);
+  };
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-xl sm:p-8">
+        <h1 className="text-xl font-bold tracking-tight">Choose a new password</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Enter a new password for your RankPulse account.</p>
+        <form onSubmit={handleSubmit} className="mt-6 space-y-5" noValidate>
+          <div>
+            <label htmlFor="new-password" className="text-xs font-medium text-muted-foreground">New password</label>
+            <div className="relative mt-1">
+              <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                id="new-password"
+                type="password"
+                autoComplete="new-password"
+                autoFocus
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 6 characters"
+                className={inputClass}
+              />
+            </div>
+          </div>
+          {error && (
+            <div role="alert" className="rounded-xl border bg-destructive/5 px-3 py-2.5 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-all hover:bg-primary/90 disabled:opacity-60"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save new password'}
+          </button>
+          <button type="button" onClick={logout} className="w-full text-center text-sm text-muted-foreground hover:text-foreground">
+            Cancel and sign out
+          </button>
+        </form>
       </div>
     </div>
   );

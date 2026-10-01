@@ -1,7 +1,8 @@
-import { ModalFooter, CancelButton, PrimaryButton, FieldLabel, SelectInput } from './modal-shell';
-import { FileText, ShieldCheck, Search, Link2, Users, Sparkles, Check } from 'lucide-react';
+import { ModalFooter, CancelButton, PrimaryButton, FieldLabel, FormAlert, SelectInput } from './modal-shell';
+import { FileText, ShieldCheck, Search, Link2, Users, Sparkles, Check, Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { useReportTemplates } from '@/lib/api/queries';
+import { useCreateReport, useReportTemplates, type CreateReportInput } from '@/lib/api/queries';
+import { useSelectedProject } from '@/lib/project-context';
 import { QueryFallback } from '../query-fallback';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -15,24 +16,62 @@ const iconMap: Record<string, typeof FileText> = {
   Sparkles,
 };
 
-export function GenerateReportModal({ onClose }: { onClose: () => void }) {
-  const [selected, setSelected] = useState(0);
+const reportSections = ['KPIs', 'Traffic', 'Keywords', 'Backlinks', 'Site Audit', 'Competitors', 'AI SEO'];
+
+/** `initialTemplate` (a template key or name) preselects a template. */
+export function GenerateReportModal({ onClose, initialTemplate }: { onClose: () => void; initialTemplate?: string }) {
   const templatesQuery = useReportTemplates();
   if (!templatesQuery.data) return <QueryFallback query={templatesQuery} skeleton={<Skeleton className="h-48 rounded-xl" />} />;
-  const reportTemplates = templatesQuery.data;
+  const templates = templatesQuery.data;
+  const start = Math.max(0, templates.findIndex((t) => t.key === initialTemplate || t.name === initialTemplate));
+  return <ReportForm onClose={onClose} templates={templates} initialIndex={start} />;
+}
+
+function ReportForm({
+  onClose,
+  templates,
+  initialIndex,
+}: {
+  onClose: () => void;
+  templates: NonNullable<ReturnType<typeof useReportTemplates>['data']>;
+  initialIndex: number;
+}) {
+  const { projectId } = useSelectedProject();
+  const [selected, setSelected] = useState(initialIndex);
+  const [dateRange, setDateRange] = useState<CreateReportInput['dateRangeDays']>(30);
+  const [format, setFormat] = useState<CreateReportInput['format']>('pdf');
+  const [sections, setSections] = useState<string[]>(templates[initialIndex]?.defaultSections ?? reportSections);
+  const [formError, setFormError] = useState('');
+  const createReport = useCreateReport();
+
+  const chooseTemplate = (i: number) => {
+    setSelected(i);
+    if (templates[i].defaultSections) setSections(templates[i].defaultSections!);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError('');
+    const template = templates[selected];
+    if (sections.length === 0) return setFormError('Choose at least one section.');
+    if (!projectId || !template?.key) return setFormError('Choose a project and a template.');
+    createReport.mutate({ projectId, template: template.key, format, dateRangeDays: dateRange, sections }, { onSuccess: onClose });
+  };
 
   return (
-    <div className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <div>
         <FieldLabel>Report Template</FieldLabel>
         <div className="mt-1 grid grid-cols-2 gap-2.5">
-          {reportTemplates.map((t, i) => {
+          {templates.map((t, i) => {
             const Icon = iconMap[t.icon] ?? FileText;
             const isActive = selected === i;
             return (
               <button
                 key={t.name}
-                onClick={() => setSelected(i)}
+                type="button"
+                onClick={() => chooseTemplate(i)}
+                aria-pressed={isActive}
                 className={cn(
                   'flex items-start gap-2.5 rounded-xl border p-3 text-left transition-all',
                   isActive ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:bg-muted/50'
@@ -54,17 +93,16 @@ export function GenerateReportModal({ onClose }: { onClose: () => void }) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <FieldLabel>Date Range</FieldLabel>
-          <SelectInput defaultValue="30">
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
-            <option value="90">Last 90 days</option>
-            <option value="custom">Custom range</option>
+          <FieldLabel htmlFor="rep-range">Date Range</FieldLabel>
+          <SelectInput id="rep-range" value={dateRange} onChange={(e) => setDateRange(Number(e.target.value) as CreateReportInput['dateRangeDays'])}>
+            <option value={7}>Last 7 days</option>
+            <option value={30}>Last 30 days</option>
+            <option value={90}>Last 90 days</option>
           </SelectInput>
         </div>
         <div>
-          <FieldLabel>Format</FieldLabel>
-          <SelectInput defaultValue="pdf">
+          <FieldLabel htmlFor="rep-format">Format</FieldLabel>
+          <SelectInput id="rep-format" value={format} onChange={(e) => setFormat(e.target.value as CreateReportInput['format'])}>
             <option value="pdf">PDF</option>
             <option value="csv">CSV</option>
             <option value="xlsx">Excel</option>
@@ -75,19 +113,29 @@ export function GenerateReportModal({ onClose }: { onClose: () => void }) {
       <div>
         <FieldLabel>Include Sections</FieldLabel>
         <div className="mt-1 flex flex-wrap gap-2">
-          {['KPIs', 'Traffic', 'Keywords', 'Backlinks', 'Site Audit', 'Competitors', 'AI SEO'].map((s) => (
+          {reportSections.map((s) => (
             <label key={s} className="flex items-center gap-1.5 rounded-lg border bg-muted/30 px-3 py-1.5 text-sm">
-              <input type="checkbox" defaultChecked className="accent-primary" />
+              <input
+                type="checkbox"
+                checked={sections.includes(s)}
+                onChange={(e) => setSections((prev) => (e.target.checked ? [...prev, s] : prev.filter((x) => x !== s)))}
+                className="accent-primary"
+              />
               {s}
             </label>
           ))}
         </div>
       </div>
 
+      <FormAlert>{formError || createReport.error?.message}</FormAlert>
+
       <ModalFooter>
         <CancelButton onClose={onClose} />
-        <PrimaryButton onClick={onClose}>Generate Report</PrimaryButton>
+        <PrimaryButton type="submit" disabled={createReport.isPending}>
+          {createReport.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+          Generate Report
+        </PrimaryButton>
       </ModalFooter>
-    </div>
+    </form>
   );
 }

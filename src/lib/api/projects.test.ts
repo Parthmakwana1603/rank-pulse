@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 import * as seo from '@/lib/seo-data';
 import { formatCompactNumber, initialsOf, parseCompactNumber } from '@/lib/utils';
 import { apiGet } from './client';
-import { createProject, deleteProject, toApiError, toProjectItem, validateNewProject, type NewProjectForm } from './projects';
+import { createProject, deleteProject, validateNewProject, type NewProjectForm } from './projects';
+import { toProjectItem } from './mappers';
+import type { ProjectDto } from './types';
 
 const form = (overrides: Partial<NewProjectForm> = {}): NewProjectForm => ({
   name: '',
@@ -52,22 +54,26 @@ describe('validateNewProject', () => {
   });
 });
 
-describe('toProjectItem', () => {
-  const row = {
+describe('toProjectItem (API → screen)', () => {
+  const dto: ProjectDto = {
     id: 'p1',
     name: 'example.com',
-    website_url: 'https://example.com',
-    favicon: null,
-    status: 'active' as const,
-    health_score: 0,
-    authority_score: 0,
-    traffic_value: null,
-    last_audit_at: null,
-    project_keywords: [{ count: 3 }],
+    websiteUrl: 'https://example.com',
+    favicon: 'E',
+    industry: null,
+    targetCountry: null,
+    status: 'active',
+    keywordCount: 3,
+    healthScore: null,
+    authorityScore: null,
+    organicTraffic: null,
+    lastAuditAt: null,
+    createdAt: '2026-09-01T00:00:00Z',
+    updatedAt: '2026-09-01T00:00:00Z',
   };
 
-  it('maps a new project row to the screen shape', () => {
-    expect(toProjectItem(row)).toEqual({
+  it('maps a new project and shows missing metrics as empty', () => {
+    expect(toProjectItem(dto)).toEqual({
       id: 'p1',
       name: 'example.com',
       websiteUrl: 'https://example.com',
@@ -75,29 +81,20 @@ describe('toProjectItem', () => {
       status: 'active',
       traffic: '—',
       keywords: 3,
-      health: 0,
-      authority: 0,
+      health: null,
+      authority: null,
       lastAudit: 'not run yet',
       trend: [],
     });
   });
 
-  it('formats the last audit time relative to now', () => {
+  it('formats audit time and traffic', () => {
     const twoHoursAgo = new Date(Date.now() - 2 * 3_600_000).toISOString();
-    expect(toProjectItem({ ...row, last_audit_at: twoHoursAgo }).lastAudit).toBe('2 hours ago');
-  });
-});
-
-describe('toApiError', () => {
-  it.each([
-    ['23505', 409, 'You already have a project for this website.'],
-    ['23514', 400, 'Some project details are invalid. Check the URL, name and country.'],
-    ['42501', 403, "You don't have permission to do that. Try signing in again."],
-    ['22023', 400, 'A project can track at most 100 keywords'],
-    ['XX000', undefined, 'A project can track at most 100 keywords'],
-  ])('maps Postgres code %s', (code, status, message) => {
-    const err = toApiError({ code, message: 'A project can track at most 100 keywords' });
-    expect(err).toMatchObject({ status, message });
+    expect(toProjectItem({ ...dto, lastAuditAt: twoHoursAgo, healthScore: 91, organicTraffic: 248_500 })).toMatchObject({
+      lastAudit: '2 hours ago',
+      health: 91,
+      traffic: '248.5K',
+    });
   });
 });
 
@@ -110,7 +107,7 @@ describe('demo mode (no backend configured)', () => {
   it('creates and deletes projects in memory', async () => {
     await createProject({ name: 'new.com', websiteUrl: 'https://new.com', trackingKeywords: ['a', 'b'] });
     const created = (await apiGet<seo.ProjectItem[]>('/projects')).find((p) => p.name === 'new.com');
-    expect(created).toMatchObject({ keywords: 2, health: 0, trend: [] });
+    expect(created).toMatchObject({ keywords: 2, health: null, trend: [] });
     expect(created?.id).toBeTruthy();
 
     await deleteProject(created!);

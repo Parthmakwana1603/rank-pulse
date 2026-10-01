@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { ModalShell, type ModalName } from './modal-shell';
 import { NewProjectModal } from './new-project-modal';
 import { ImportProjectModal } from './import-project-modal';
@@ -14,18 +14,9 @@ import { ContentDetailModal } from './content-detail-modal';
 import { GenerateReportModal } from './generate-report-modal';
 import { ExportPdfModal } from './export-pdf-modal';
 
-interface ModalContextValue {
-  open: (name: ModalName, payload?: unknown) => void;
-  close: () => void;
-}
+import { ModalContext } from './modal-context';
 
-const ModalContext = createContext<ModalContextValue | undefined>(undefined);
-
-export function useModal() {
-  const ctx = useContext(ModalContext);
-  if (!ctx) throw new Error('useModal must be used within ModalProvider');
-  return ctx;
-}
+export { useModal } from './modal-context';
 
 export function ModalProvider({ children }: { children: React.ReactNode }) {
   const [active, setActive] = useState<ModalName | null>(null);
@@ -60,12 +51,14 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
         )}
         {active === 'add-backlink' && <AddBacklinkModal onClose={close} />}
         {active === 'add-competitor' && <AddCompetitorModal onClose={close} />}
-        {active === 'new-content' && <NewContentModal onClose={close} />}
+        {active === 'new-content' && <NewContentModal onClose={close} contentId={(payload as string | null) ?? undefined} />}
         {active === 'content-detail' && (
           <ContentDetailModal onClose={close} title={payload as string} />
         )}
-        {active === 'generate-report' && <GenerateReportModal onClose={close} />}
-        {active === 'export-pdf' && <ExportPdfModal onClose={close} />}
+        {active === 'generate-report' && (
+          <GenerateReportModal onClose={close} initialTemplate={(payload as string | null) ?? undefined} />
+        )}
+        {active === 'export-pdf' && <ExportPdfModal onClose={close} template={(payload as string | null) ?? undefined} />}
       </ModalShell>
     );
   };

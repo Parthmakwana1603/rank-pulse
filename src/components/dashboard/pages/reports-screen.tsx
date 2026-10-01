@@ -1,8 +1,11 @@
-import { BarChart3, Download, Plus, FileText, ShieldCheck, Search, Link2, Users, Sparkles, Calendar, Clock, CheckCircle2, Loader2 } from 'lucide-react';
+import { BarChart3, Download, Plus, FileText, ShieldCheck, Search, Link2, Users, Sparkles, Calendar, Clock, CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '../page-header';
 import type { ReportItem } from '@/lib/seo-data';
-import { useReportsData } from '@/lib/api/queries';
+import { useDownloadReport, useReportsData } from '@/lib/api/queries';
+import { dataMode } from '@/lib/api/client';
+import { scheduledReports } from '@/lib/seo-data';
+import { EmptyState } from '../empty-state';
 import { cn } from '@/lib/utils';
 import { useModal } from '../modals/modal-provider';
 import { QueryFallback } from '../query-fallback';
@@ -20,11 +23,13 @@ const statusConfig: Record<ReportItem['status'], { color: string; bg: string; ic
   Ready: { color: 'text-success', bg: 'bg-success/10', icon: CheckCircle2 },
   Generating: { color: 'text-primary', bg: 'bg-primary/10', icon: Loader2 },
   Scheduled: { color: 'text-muted-foreground', bg: 'bg-muted', icon: Clock },
+  Failed: { color: 'text-destructive', bg: 'bg-destructive/10', icon: XCircle },
 };
 
 export function ReportsScreen() {
   const { open } = useModal();
   const screenQuery = useReportsData();
+  const download = useDownloadReport();
   if (!screenQuery.data) return <QueryFallback query={screenQuery} />;
   const { reports: reportList, templates: reportTemplates } = screenQuery.data;
   return (
@@ -48,13 +53,21 @@ export function ReportsScreen() {
         <Card className="min-w-0 rounded-2xl p-5 shadow-sm lg:col-span-2">
           <h2 className="text-base font-semibold">Recent Reports</h2>
           <p className="mt-0.5 text-sm text-muted-foreground">{reportList.length} reports</p>
+          {download.error && (
+            <p role="alert" className="mt-3 rounded-xl border bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              {download.error.message}
+            </p>
+          )}
           <div className="mt-4 space-y-2">
+            {reportList.length === 0 && (
+              <EmptyState title="No reports yet" description="Generate a report from a template. Finished files can be downloaded here." />
+            )}
             {reportList.map((r) => {
               const status = statusConfig[r.status];
               const StatusIcon = status.icon;
               return (
                 <div
-                  key={r.name}
+                  key={r.id ?? r.name}
                   className="group flex items-center gap-3 rounded-xl border bg-muted/30 p-3.5 transition-colors hover:bg-muted/60"
                 >
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-card shadow-sm">
@@ -69,6 +82,7 @@ export function ReportsScreen() {
                       </span>
                       <span>{r.type}</span>
                       {r.size !== '—' && <span>{r.size}</span>}
+                      {r.status === 'Failed' && r.errorMessage && <span className="text-destructive">{r.errorMessage}</span>}
                     </div>
                   </div>
                   <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium', status.bg, status.color)}>
@@ -76,8 +90,13 @@ export function ReportsScreen() {
                     {r.status}
                   </span>
                   {r.status === 'Ready' && (
-                    <button className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-background hover:text-primary">
-                      <Download className="h-4 w-4" />
+                    <button
+                      onClick={() => r.id && download.mutate(r.id)}
+                      disabled={download.isPending}
+                      aria-label={`Download ${r.name}`}
+                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-background hover:text-primary disabled:opacity-60"
+                    >
+                      {download.isPending && download.variables === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                     </button>
                   )}
                 </div>
@@ -95,6 +114,7 @@ export function ReportsScreen() {
               return (
                 <button
                   key={t.name}
+                  onClick={() => open('generate-report', t.key ?? t.name)}
                   className="group flex w-full items-center gap-3 rounded-xl border bg-muted/30 p-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
                 >
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-transform group-hover:scale-110">
@@ -114,12 +134,16 @@ export function ReportsScreen() {
       <Card className="rounded-2xl p-5 shadow-sm">
         <h2 className="text-base font-semibold">Scheduled Reports</h2>
         <p className="mt-0.5 text-sm text-muted-foreground">Automated report delivery</p>
+        {dataMode === 'api' && (
+          <EmptyState
+            className="mt-4"
+            icon={<Clock className="h-5 w-5" />}
+            title="Scheduled delivery isn't available yet"
+            description="Reports can be generated and downloaded on demand. Scheduling and emailing them needs an email provider, which hasn't been set up."
+          />
+        )}
         <div className="mt-4 grid gap-3 md:grid-cols-3">
-          {[
-            { name: 'Weekly SEO Performance', schedule: 'Every Monday at 9:00 AM', recipients: 'team@acme.com', next: 'Aug 4, 2025' },
-            { name: 'Monthly Traffic Summary', schedule: '1st of every month', recipients: 'jamie@acme.com', next: 'Aug 1, 2025' },
-            { name: 'Daily Keyword Alert', schedule: 'Every day at 8:00 AM', recipients: 'seo@acme.com', next: 'Jul 29, 2025' },
-          ].map((s) => (
+          {(dataMode === 'demo' ? scheduledReports : []).map((s) => (
             <div key={s.name} className="rounded-xl border bg-muted/30 p-4 transition-colors hover:bg-muted/60">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-primary" />

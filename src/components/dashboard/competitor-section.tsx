@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { SectionHeader } from './section-header';
 import type { DashboardSummary } from '@/lib/api/queries';
-import { cn } from '@/lib/utils';
+import { cn, NO_VALUE } from '@/lib/utils';
 import { Check } from 'lucide-react';
 
 const metrics = [
@@ -54,7 +54,7 @@ export function CompetitorSection({ competitors }: Pick<DashboardSummary, 'compe
               <div className="mt-3 mb-4">
                 <div className="flex items-end justify-between">
                   <span className="text-xs text-muted-foreground">Authority</span>
-                  <span className="text-lg font-bold">{c.authority}</span>
+                  <span className="text-lg font-bold">{c.authority ?? NO_VALUE}</span>
                 </div>
                 <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-muted">
                   <div
@@ -64,7 +64,7 @@ export function CompetitorSection({ competitors }: Pick<DashboardSummary, 'compe
                         ? 'bg-gradient-to-r from-primary to-accent'
                         : 'bg-gradient-to-r from-chart-4 to-chart-5'
                     )}
-                    style={{ width: `${c.authority}%` }}
+                    style={{ width: `${c.authority ?? 0}%` }}
                   />
                 </div>
               </div>

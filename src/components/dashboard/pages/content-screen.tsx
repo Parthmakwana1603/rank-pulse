@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { FileText, Plus, TrendingUp, TrendingDown, MoreHorizontal, Filter } from 'lucide-react';
+import { FileText, Plus, MoreHorizontal, Filter } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '../page-header';
 import type { ContentItem } from '@/lib/seo-data';
 import { useContentData } from '@/lib/api/queries';
-import { cn, matchesQuery } from '@/lib/utils';
+import { cn, formatNumber, matchesQuery } from '@/lib/utils';
+import { EmptyRow } from '../empty-state';
 import { useModal } from '../modals/modal-provider';
 import { QueryFallback } from '../query-fallback';
+import { StatChange } from '../stat-change';
 import { TableFilter, NoMatchesRow } from '../table-filter';
 
 const statusConfig: Record<ContentItem['status'], { color: string; bg: string }> = {
@@ -74,15 +76,7 @@ export function ContentScreen() {
           <Card key={s.label} className="rounded-2xl p-5 shadow-sm">
             <p className="text-sm text-muted-foreground">{s.label}</p>
             <p className="mt-1 text-2xl font-bold">{s.value}</p>
-            <span
-              className={cn(
-                'mt-1 inline-flex items-center gap-0.5 text-xs font-semibold',
-                s.change >= 0 ? 'text-success' : 'text-destructive'
-              )}
-            >
-              {s.change >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-              {Math.abs(s.change)}%
-            </span>
+            <StatChange change={s.change} />
           </Card>
         ))}
       </div>
@@ -116,11 +110,14 @@ export function ContentScreen() {
               </tr>
             </thead>
             <tbody>
-              {rows.length === 0 && <NoMatchesRow colSpan={8} />}
+              {contentList.length === 0 && (
+                <EmptyRow colSpan={8}>No content tracked yet. Use “New Content” to add pages and articles.</EmptyRow>
+              )}
+              {contentList.length > 0 && rows.length === 0 && <NoMatchesRow colSpan={8} />}
               {rows.map((item) => {
                 const status = statusConfig[item.status];
                 return (
-                  <tr key={item.url} onClick={() => open('content-detail', item.title)} className="cursor-pointer border-b transition-colors last:border-0 hover:bg-muted/40">
+                  <tr key={item.id ?? item.url} onClick={() => open('content-detail', item.id ?? item.title)} className="cursor-pointer border-b transition-colors last:border-0 hover:bg-muted/40">
                     <td className="py-3 pr-4">
                       <p className="font-medium">{item.title}</p>
                       <p className="text-xs text-muted-foreground">{item.url}</p>
@@ -130,8 +127,8 @@ export function ContentScreen() {
                         {item.type}
                       </span>
                     </td>
-                    <td className="py-3 pr-4 text-muted-foreground">{item.traffic.toLocaleString()}</td>
-                    <td className="py-3 pr-4 text-muted-foreground">{item.keywords}</td>
+                    <td className="py-3 pr-4 text-muted-foreground">{formatNumber(item.traffic)}</td>
+                    <td className="py-3 pr-4 text-muted-foreground">{formatNumber(item.keywords)}</td>
                     <td className="py-3 pr-4">
                       {item.score > 0 ? (
                         <span className={cn('text-sm font-bold', scoreColor(item.score))}>{item.score}</span>
@@ -147,7 +144,15 @@ export function ContentScreen() {
                     </td>
                     <td className="py-3 pr-4 text-muted-foreground">{item.updated}</td>
                     <td className="py-3">
-                      <button className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          open('new-content', item.id);
+                        }}
+                        aria-label={`Edit ${item.title}`}
+                        title="Edit"
+                        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted"
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                       </button>
                     </td>

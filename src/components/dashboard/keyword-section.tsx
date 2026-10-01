@@ -1,16 +1,19 @@
-import { TrendingUp, TrendingDown, Minus, ExternalLink, ArrowUpDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, ArrowUpDown } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { SectionHeader } from './section-header';
 import type { DashboardSummary } from '@/lib/api/queries';
-import { cn } from '@/lib/utils';
+import { cn, formatNumber, NO_VALUE, rankChange } from '@/lib/utils';
+import { EmptyRow } from './empty-state';
 
-function difficultyColor(d: number) {
+function difficultyColor(d: number | null) {
+  if (d === null) return 'bg-muted text-muted-foreground';
   if (d >= 70) return 'bg-destructive/10 text-destructive';
   if (d >= 45) return 'bg-warning/10 text-warning';
   return 'bg-success/10 text-success';
 }
 
-function rankColor(rank: number) {
+function rankColor(rank: number | null) {
+  if (rank === null) return 'bg-muted text-muted-foreground';
   if (rank <= 3) return 'bg-primary/10 text-primary';
   if (rank <= 10) return 'bg-accent/10 text-accent';
   if (rank <= 20) return 'bg-warning/10 text-warning';
@@ -45,16 +48,19 @@ export function KeywordSection({ keywordTable }: Pick<DashboardSummary, 'keyword
             </tr>
           </thead>
           <tbody>
+            {keywordTable.length === 0 && (
+              <EmptyRow colSpan={8}>No tracked keywords yet. Add keywords to start tracking them.</EmptyRow>
+            )}
             {keywordTable.map((row) => {
-              const change = row.previousRank - row.rank;
+              const change = rankChange(row);
               return (
                 <tr
-                  key={row.keyword}
+                  key={row.id ?? row.keyword}
                   className="border-b transition-colors last:border-0 hover:bg-muted/40"
                 >
                   <td className="py-3 pr-4 font-medium">{row.keyword}</td>
                   <td className="py-3 pr-4 text-muted-foreground">
-                    {row.volume.toLocaleString()}
+                    {formatNumber(row.volume)}
                   </td>
                   <td className="py-3 pr-4">
                     <span
@@ -63,7 +69,7 @@ export function KeywordSection({ keywordTable }: Pick<DashboardSummary, 'keyword
                         difficultyColor(row.difficulty)
                       )}
                     >
-                      {row.difficulty}
+                      {row.difficulty ?? NO_VALUE}
                     </span>
                   </td>
                   <td className="py-3 pr-4 text-muted-foreground">{row.cpc}</td>
@@ -74,39 +80,35 @@ export function KeywordSection({ keywordTable }: Pick<DashboardSummary, 'keyword
                         rankColor(row.rank)
                       )}
                     >
-                      {row.rank}
+                      {row.rank ?? NO_VALUE}
                     </span>
                   </td>
-                  <td className="py-3 pr-4 text-muted-foreground">{row.previousRank}</td>
+                  <td className="py-3 pr-4 text-muted-foreground">{row.previousRank ?? NO_VALUE}</td>
                   <td className="py-3 pr-4">
                     <span
                       className={cn(
                         'inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold',
-                        change > 0
+                        change !== null && change > 0
                           ? 'bg-success/10 text-success'
-                          : change < 0
+                          : change !== null && change < 0
                             ? 'bg-destructive/10 text-destructive'
                             : 'bg-muted text-muted-foreground'
                       )}
                     >
-                      {change > 0 ? (
+                      {change !== null && change > 0 ? (
                         <TrendingUp className="h-3 w-3" />
-                      ) : change < 0 ? (
+                      ) : change !== null && change < 0 ? (
                         <TrendingDown className="h-3 w-3" />
                       ) : (
                         <Minus className="h-3 w-3" />
                       )}
-                      {change > 0 ? `+${change}` : change}
+                      {change === null ? NO_VALUE : change > 0 ? `+${change}` : change}
                     </span>
                   </td>
                   <td className="py-3">
-                    <a
-                      href="#"
-                      className="group inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
-                    >
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                       <span className="max-w-[120px] truncate">{row.url}</span>
-                      <ExternalLink className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" />
-                    </a>
+                    </span>
                   </td>
                 </tr>
               );

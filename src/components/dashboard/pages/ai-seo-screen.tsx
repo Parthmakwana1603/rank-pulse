@@ -6,6 +6,7 @@ import { useAiSeoData } from '@/lib/api/queries';
 import { cn } from '@/lib/utils';
 import { useModal } from '../modals/modal-provider';
 import { QueryFallback } from '../query-fallback';
+import { EmptyState } from '../empty-state';
 
 const iconMap: Record<string, typeof Brain> = {
   'AI Visibility Score': Brain,
@@ -42,6 +43,23 @@ export function AiSeoScreen() {
   const screenQuery = useAiSeoData();
   if (!screenQuery.data) return <QueryFallback query={screenQuery} />;
   const { metrics: aiSeoFullMetrics, trend: aiTrend, mentions: aiMentionsByPlatform, recommendations: aiRecommendations } = screenQuery.data;
+  if (aiSeoFullMetrics.length === 0 && aiTrend.length === 0 && aiMentionsByPlatform.length === 0 && aiRecommendations.length === 0) {
+    return (
+      <div className="mx-auto max-w-[1600px] space-y-6">
+        <PageHeader
+          title="AI SEO & GEO"
+          description="Optimize for generative engines and AI-powered search"
+          icon={<Sparkles className="h-5 w-5" />}
+        />
+        <EmptyState
+          className="bg-card p-10"
+          icon={<Sparkles className="h-5 w-5" />}
+          title="AI visibility tracking isn't connected"
+          description="Measuring how often ChatGPT, Perplexity, Google AI Overviews and other AI engines mention or cite your site needs an AI-search data provider. None has been set up, so no numbers are shown."
+        />
+      </div>
+    );
+  }
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
       <PageHeader
@@ -50,7 +68,7 @@ export function AiSeoScreen() {
         icon={<Sparkles className="h-5 w-5" />}
         actions={
           <button
-            onClick={() => open('export-pdf')}
+            onClick={() => open('export-pdf', 'ai-seo-report')}
             className="flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/30 transition-all hover:bg-primary/90"
           >
             <Download className="h-4 w-4" />

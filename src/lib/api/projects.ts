@@ -1,11 +1,9 @@
-// Projects: POST/DELETE /projects and the Supabase implementation of GET /projects.
-import { formatDistanceToNowStrict } from 'date-fns';
-import type { PostgrestError } from '@supabase/supabase-js';
+// Projects: form validation and create/update/delete/import (POST/PATCH/DELETE /projects).
 import * as seo from '@/lib/seo-data';
 import type { ProjectItem } from '@/lib/seo-data';
-import { supabase } from '@/lib/supabase';
 import { ApiError } from './errors';
-import { baseUrl, httpRequest } from './http';
+import { apiSend, apiUpload, dataMode } from './client';
+import type { ImportResultDto, ProjectDto } from './types';
 
 export const industries = [
   { value: 'saas', label: 'SaaS' },
@@ -26,7 +24,7 @@ export const countries = [
   { value: 'IN', label: 'India' },
 ] as const;
 
-/** Request body of POST /projects (BACKEND_SPECIFICATION.md). */
+/** Request body of POST /projects. */
 export interface NewProjectInput {
   name: string;
   websiteUrl: string;
@@ -45,7 +43,7 @@ export interface NewProjectForm {
 
 export type NewProjectErrors = Partial<Record<keyof NewProjectForm, string>>;
 
-/** Validates and normalises the New Project form, mirroring the database constraints. */
+/** Validates and normalises the New Project form, mirroring the API's and database's rules. */
 export function validateNewProject(form: NewProjectForm):
   | { ok: true; input: NewProjectInput }
   | { ok: false; errors: NewProjectErrors } {
@@ -95,89 +93,9 @@ export function validateNewProject(form: NewProjectForm):
   };
 }
 
-// ── Supabase ───────────────────────────────────────────────────────────────
-
-interface ProjectRow {
-  id: string;
-  name: string;
-  website_url: string;
-  favicon: string | null;
-  status: ProjectItem['status'];
-  health_score: number;
-  authority_score: number;
-  traffic_value: string | null;
-  last_audit_at: string | null;
-  project_keywords?: { count: number }[];
-}
-
-const projectColumns =
-  'id, name, website_url, favicon, status, health_score, authority_score, traffic_value, last_audit_at, project_keywords(count)';
-
-export function toProjectItem(row: ProjectRow): ProjectItem {
-  return {
-    id: row.id,
-    name: row.name,
-    websiteUrl: row.website_url,
-    favicon: row.favicon || row.name.charAt(0).toUpperCase(),
-    status: row.status,
-    traffic: row.traffic_value ?? '—',
-    keywords: row.project_keywords?.[0]?.count ?? 0,
-    health: row.health_score,
-    authority: row.authority_score,
-    lastAudit: row.last_audit_at
-      ? formatDistanceToNowStrict(new Date(row.last_audit_at), { addSuffix: true })
-      : 'not run yet',
-    // Traffic history arrives with the traffic_data table in a later phase.
-    trend: [],
-  };
-}
-
-/** Turns a Postgres/PostgREST error into a message a user can act on. */
-export function toApiError(error: Pick<PostgrestError, 'code' | 'message'>): ApiError {
-  switch (error.code) {
-    case '23505':
-      return new ApiError('You already have a project for this website.', 409);
-    case '23514':
-      return new ApiError('Some project details are invalid. Check the URL, name and country.', 400);
-    case '22023':
-      return new ApiError(error.message, 400);
-    case '42501':
-      return new ApiError("You don't have permission to do that. Try signing in again.", 403);
-    default:
-      return new ApiError(error.message || 'Something went wrong. Please try again.');
-  }
-}
-
-async function fetchProjectsFromSupabase(): Promise<ProjectItem[]> {
-  const { data, error } = await supabase!
-    .from('projects')
-    .select(projectColumns)
-    .order('created_at', { ascending: true });
-  if (error) throw toApiError(error);
-  return (data as ProjectRow[]).map(toProjectItem);
-}
-
-/** GET handlers served by Supabase so far; other paths fall back to the REST API or mock data. */
-export const supabaseRoutes: Record<string, () => Promise<unknown>> = {
-  '/projects': fetchProjectsFromSupabase,
-};
-
-// ── Mutations ──────────────────────────────────────────────────────────────
-
 export async function createProject(input: NewProjectInput): Promise<void> {
-  if (supabase) {
-    const { error } = await supabase.rpc('create_project', {
-      p_name: input.name,
-      p_website_url: input.websiteUrl,
-      p_industry: input.industry ?? null,
-      p_target_country: input.targetCountry ?? null,
-      p_tracking_keywords: input.trackingKeywords,
-    });
-    if (error) throw toApiError(error);
-    return;
-  }
-  if (baseUrl) {
-    await httpRequest('POST', '/projects', input);
+  if (dataMode === 'api') {
+    await apiSend<ProjectDto>('POST', '/projects', input);
     return;
   }
   // Demo mode: keep it in memory for this browser session.
@@ -193,54 +111,33 @@ export async function createProject(input: NewProjectInput): Promise<void> {
     status: 'active',
     traffic: '—',
     keywords: input.trackingKeywords.length,
-    health: 0,
-    authority: 0,
+    health: null,
+    authority: null,
     lastAudit: 'not run yet',
     trend: [],
   });
 }
 
-/** Deletes a project by id (backend projects) or by name (demo projects). */
+/** Deletes a project by id (API projects) or by name (demo projects without an id). */
 export async function deleteProject(project: Pick<ProjectItem, 'id' | 'name'>): Promise<void> {
-  if (supabase) {
-    const { error } = await supabase.from('projects').delete().eq('id', project.id!);
-    if (error) throw toApiError(error);
-    return;
-  }
-  if (baseUrl) {
-    await httpRequest('DELETE', `/projects/${encodeURIComponent(project.id ?? project.name)}`);
+  if (dataMode === 'api') {
+    await apiSend('DELETE', `/projects/${encodeURIComponent(project.id!)}`);
     return;
   }
   const index = seo.projectList.findIndex((p) => (project.id ? p.id === project.id : p.name === project.name));
   if (index !== -1) seo.projectList.splice(index, 1);
 }
 
-function hoursAgo(label: string) {
-  const match = /(\d+)\s*([hd])/.exec(label);
-  if (!match) return null;
-  const hours = Number(match[1]) * (match[2] === 'd' ? 24 : 1);
-  return new Date(Date.now() - hours * 3_600_000).toISOString();
+export interface ProjectPatch {
+  name?: string;
+  status?: 'active' | 'paused';
 }
 
-/** Copies the demo projects into the signed-in user's Supabase account. */
-export async function addSampleProjects(): Promise<void> {
-  if (!supabase) return;
-  const { data: existing, error: readError } = await supabase.from('projects').select('website_url');
-  if (readError) throw toApiError(readError);
-  const taken = new Set((existing ?? []).map((row) => String(row.website_url).toLowerCase()));
-  const rows = seo.projectList
-    .filter((p) => !taken.has(`https://${p.name}`.toLowerCase()))
-    .map((p) => ({
-      name: p.name,
-      website_url: `https://${p.name}`,
-      favicon: p.favicon,
-      status: p.status,
-      health_score: p.health,
-      authority_score: p.authority,
-      traffic_value: p.traffic,
-      last_audit_at: hoursAgo(p.lastAudit),
-    }));
-  if (rows.length === 0) return;
-  const { error } = await supabase.from('projects').insert(rows);
-  if (error) throw toApiError(error);
+export async function updateProject({ id, ...patch }: ProjectPatch & { id: string }): Promise<void> {
+  await apiSend<ProjectDto>('PATCH', `/projects/${encodeURIComponent(id)}`, patch);
+}
+
+/** Uploads a CSV of projects (header row with website_url; optional name, industry, country, keywords). */
+export function importProjects(file: File): Promise<ImportResultDto> {
+  return apiUpload<ImportResultDto>('/projects/import', 'file', file);
 }

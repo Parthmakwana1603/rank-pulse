@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { SectionHeader } from './section-header';
 import type { DashboardSummary } from '@/lib/api/queries';
 import { cn } from '@/lib/utils';
+import { EmptyState } from './empty-state';
 
 const scoreConfig = {
   good: { color: 'text-success', bg: 'bg-success/10', ring: 'ring-success/30', label: 'Good' },
@@ -23,6 +24,13 @@ export function CoreWebVitalsSection({ coreWebVitals }: Pick<DashboardSummary, '
           </span>
         }
       />
+      {coreWebVitals.length === 0 && (
+        <EmptyState
+          className="mt-4"
+          title="No Core Web Vitals data"
+          description="Real-user performance data needs the Chrome UX Report or PageSpeed Insights, which isn't connected yet."
+        />
+      )}
       <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
         {coreWebVitals.map((v) => {
           const cfg = scoreConfig[v.score as keyof typeof scoreConfig];

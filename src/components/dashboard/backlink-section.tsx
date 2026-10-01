@@ -3,7 +3,8 @@ import { Card } from '@/components/ui/card';
 import { SectionHeader } from './section-header';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import type { DashboardSummary } from '@/lib/api/queries';
-import { cn } from '@/lib/utils';
+import { cn, NO_VALUE } from '@/lib/utils';
+import { EmptyState } from './empty-state';
 
 const tooltipStyle = {
   backgroundColor: 'hsl(var(--popover))',
@@ -41,6 +42,7 @@ export function BacklinkSection({
             >
               <p className="text-xs text-muted-foreground">{stat.label}</p>
               <p className="mt-1 text-xl font-bold">{stat.value}</p>
+              {stat.change !== null && (
               <span
                 className={cn(
                   'mt-1 inline-flex items-center gap-0.5 text-xs font-semibold',
@@ -54,12 +56,17 @@ export function BacklinkSection({
                 )}
                 {Math.abs(stat.change)}%
               </span>
+              )}
             </div>
           ))}
         </div>
 
         <div className="rounded-xl border bg-muted/30 p-4">
           <p className="text-sm font-semibold">Anchor Text Distribution</p>
+          {anchorTextDistribution.length === 0 ? (
+            <EmptyState className="mt-3" title="No backlinks yet" description="Add backlinks on the Backlinks page to see their anchor text." />
+          ) : (
+          <>
           <div className="mt-3 h-[160px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -81,10 +88,16 @@ export function BacklinkSection({
               </div>
             ))}
           </div>
+          </>
+          )}
         </div>
 
         <div className="rounded-xl border bg-muted/30 p-4">
           <p className="text-sm font-semibold">Follow vs Nofollow</p>
+          {followNofollow.length === 0 ? (
+            <EmptyState className="mt-3" title="No backlinks yet" />
+          ) : (
+          <>
           <div className="mt-3 h-[160px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -106,11 +119,14 @@ export function BacklinkSection({
               </div>
             ))}
           </div>
+          </>
+          )}
         </div>
 
         <div className="rounded-xl border bg-muted/30 p-4">
           <p className="text-sm font-semibold">Top Referring Domains</p>
           <div className="mt-3 space-y-2.5">
+            {topReferringDomains.length === 0 && <EmptyState title="No referring domains yet" />}
             {topReferringDomains.map((d) => (
               <div key={d.domain} className="flex items-center gap-2.5">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 text-xs font-bold text-primary">
@@ -119,9 +135,10 @@ export function BacklinkSection({
                 <div className="flex-1">
                   <p className="text-sm font-medium leading-tight">{d.domain}</p>
                   <p className="text-xs text-muted-foreground">
-                    DA {d.authority} · {d.backlinks.toLocaleString()} links
+                    DA {d.authority ?? NO_VALUE} · {d.backlinks.toLocaleString()} links
                   </p>
                 </div>
+                {d.change !== null && (
                 <span
                   className={cn(
                     'text-xs font-semibold',
@@ -131,6 +148,7 @@ export function BacklinkSection({
                   {d.change >= 0 ? '+' : ''}
                   {d.change}%
                 </span>
+                )}
                 <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground" />
               </div>
             ))}

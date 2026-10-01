@@ -20,9 +20,15 @@ interface AuthContextValue {
   initializing: boolean;
   /** 'demo' accepts any credentials; 'supabase' uses real accounts. */
   mode: 'demo' | 'supabase';
+  /** True after the user opened a password-reset link: they must choose a new password. */
+  recovering: boolean;
   login: (email: string, password: string) => Promise<Result>;
   signUp: (name: string, email: string, password: string) => Promise<Result>;
   logout: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<Result>;
+  updatePassword: (password: string) => Promise<Result>;
+  /** Reloads name and plan after the profile changed. */
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -63,6 +69,7 @@ async function loadSupabaseUser(user: User): Promise<AuthUser> {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [initializing, setInitializing] = useState(supabase !== null);
+  const [recovering, setRecovering] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -70,7 +77,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let active = true;
     // Fires once with the restored session (INITIAL_SESSION), then on every sign-in/out.
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') queryClient.clear();
+      if (event === 'SIGNED_OUT') {
+        queryClient.clear();
+        setRecovering(false);
+      }
+      // Opening a password-reset link signs the user in and fires this event.
+      if (event === 'PASSWORD_RECOVERY') setRecovering(true);
       if (!session?.user) {
         setUser(null);
         setInitializing(false);
@@ -137,9 +149,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryClient.clear();
   }, [queryClient]);
 
+  const requestPasswordReset = useCallback(async (email: string): Promise<Result> => {
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) return { ok: false, error: 'Please enter a valid email address.' };
+    if (!supabase) return { ok: false, error: 'Password reset needs real accounts. Connect Supabase first.' };
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, message: 'If an account exists for that email, we sent a link to reset your password.' };
+  }, []);
+
+  const updatePassword = useCallback(async (password: string): Promise<Result> => {
+    if (password.length < 6) return { ok: false, error: 'Password must be at least 6 characters.' };
+    if (!supabase) return { ok: false, error: 'Password reset needs real accounts.' };
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) return { ok: false, error: error.message };
+    setRecovering(false);
+    return { ok: true };
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    if (!supabase) return;
+    const { data } = await supabase.auth.getUser();
+    if (data.user) setUser(await loadSupabaseUser(data.user));
+  }, []);
+
   return (
     <AuthContext.Provider
-      value={{ user, initializing, mode: supabase ? 'supabase' : 'demo', login, signUp, logout }}
+      value={{
+        user,
+        initializing,
+        mode: supabase ? 'supabase' : 'demo',
+        recovering,
+        login,
+        signUp,
+        logout,
+        requestPasswordReset,
+        updatePassword,
+        refreshUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

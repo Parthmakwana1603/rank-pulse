@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { FolderKanban, Plus } from 'lucide-react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Sidebar } from './sidebar';
 import { Topbar } from './topbar';
@@ -28,6 +29,13 @@ import { pageForPath, pathForPage } from '@/lib/routes';
 import { useDashboardData } from '@/lib/api/queries';
 import { QueryFallback } from './query-fallback';
 import { DashboardSkeleton } from './dashboard-skeleton';
+import { EmptyState } from './empty-state';
+import { useModal } from './modals/modal-provider';
+import { useSelectedProject } from '@/lib/project-context';
+import { dataMode } from '@/lib/api/client';
+
+/** Pages that show one project's data (everything except Projects, Schema Generator and Settings). */
+const projectPages = new Set(['Dashboard', 'Keyword Rankings', 'Site Audit', 'Backlinks', 'Competitors', 'Content', 'AI SEO', 'Reports']);
 
 export function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -35,6 +43,7 @@ export function Dashboard() {
   const location = useLocation();
   const navigate = useNavigate();
   const activePage = pageForPath(location.pathname);
+  const { projectsQuery } = useSelectedProject();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -51,6 +60,7 @@ export function Dashboard() {
   if (!activePage) return <Navigate to="/" replace />;
 
   const renderPage = () => {
+    if (projectPages.has(activePage) && projectsQuery.data?.length === 0) return <NoProjects />;
     switch (activePage) {
       case 'Dashboard':
         return <DashboardHome />;
@@ -102,14 +112,37 @@ export function Dashboard() {
   );
 }
 
+function NoProjects() {
+  const { open } = useModal();
+  return (
+    <EmptyState
+      className="mx-auto mt-10 max-w-lg bg-card p-10"
+      icon={<FolderKanban className="h-5 w-5" />}
+      title="Create your first project"
+      description="Add the website you want to track. Keywords, audits, backlinks and reports all belong to a project."
+      action={
+        <button
+          onClick={() => open('new-project')}
+          className="mt-2 flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/30 transition-all hover:bg-primary/90"
+        >
+          <Plus className="h-4 w-4" />
+          New Project
+        </button>
+      }
+    />
+  );
+}
+
 function DashboardHome() {
   const query = useDashboardData();
+  const { project } = useSelectedProject();
   if (!query.data) return <QueryFallback query={query} skeleton={<DashboardSkeleton />} />;
-  const { summary, activities, projects } = query.data;
+  const { summary, activities } = query.data;
+  const healthLabel = summary.kpis.find((k) => k.id === 'site-health')?.value;
 
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
-      <HeroSection projectName={projects[0]?.name ?? 'Your project'} />
+      <HeroSection project={project} />
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {summary.kpis.map((kpi, i) => (
           <KpiCard key={kpi.id} kpi={kpi} index={i} />
@@ -118,14 +151,14 @@ function DashboardHome() {
       <QuickActions />
       <ChartsSection {...summary} />
       <KeywordSection {...summary} />
-      <SiteAuditSection {...summary} />
+      <SiteAuditSection {...summary} healthLabel={healthLabel} />
       <BacklinkSection {...summary} />
       <CompetitorSection {...summary} />
       <AiSeoSection {...summary} />
       <CoreWebVitalsSection {...summary} />
       <RecentActivitiesSection recentActivities={activities} />
       <footer className="flex items-center justify-between border-t pt-5 text-xs text-muted-foreground">
-        <p>RankPulse SEO Suite · Demo data for illustration</p>
+        <p>RankPulse SEO Suite{dataMode === 'demo' ? ' · Demo data for illustration' : ''}</p>
         <p>Powered by RankPulse Analytics</p>
       </footer>
     </div>

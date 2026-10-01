@@ -4,12 +4,18 @@ import {
   ShieldCheck,
   Link2,
   Sparkles,
+  FolderKanban,
+  Search,
+  Users,
+  FileText,
+  BarChart3,
   type LucideIcon,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { SectionHeader } from './section-header';
 import type { Activity } from '@/lib/seo-data';
 import { cn } from '@/lib/utils';
+import { EmptyState } from './empty-state';
 
 const typeConfig: Record<
   Activity['type'],
@@ -20,6 +26,11 @@ const typeConfig: Record<
   audit: { icon: ShieldCheck, color: 'text-primary', bg: 'bg-primary/10' },
   backlink: { icon: Link2, color: 'text-accent', bg: 'bg-accent/10' },
   ai: { icon: Sparkles, color: 'text-chart-4', bg: 'bg-chart-4/10' },
+  project: { icon: FolderKanban, color: 'text-primary', bg: 'bg-primary/10' },
+  keyword: { icon: Search, color: 'text-success', bg: 'bg-success/10' },
+  competitor: { icon: Users, color: 'text-chart-4', bg: 'bg-chart-4/10' },
+  content: { icon: FileText, color: 'text-accent', bg: 'bg-accent/10' },
+  report: { icon: BarChart3, color: 'text-primary', bg: 'bg-primary/10' },
 };
 
 export function RecentActivitiesSection({ recentActivities }: { recentActivities: Activity[] }) {
@@ -29,6 +40,9 @@ export function RecentActivitiesSection({ recentActivities }: { recentActivities
         title="Recent Activities"
         description="Latest changes and events"
       />
+      {recentActivities.length === 0 && (
+        <EmptyState className="mt-5" title="No activity yet" description="Changes to this project (keywords, audits, backlinks, reports…) will show up here." />
+      )}
       <div className="relative mt-5">
         <div className="absolute bottom-0 left-[15px] top-2 w-px bg-border" />
         <div className="space-y-5">
