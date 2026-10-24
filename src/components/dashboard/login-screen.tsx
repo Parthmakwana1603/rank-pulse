@@ -140,7 +140,7 @@ export function LoginScreen() {
                   disabled={loading}
                   className="mt-1.5 text-xs font-medium text-primary transition-opacity hover:opacity-80 disabled:opacity-60"
                 >
-                  Forgot password? Email me a reset link
+                  Forgot password?
                 </button>
               )}
             </div>
